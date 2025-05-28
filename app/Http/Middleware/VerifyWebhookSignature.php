@@ -16,11 +16,11 @@ class VerifyWebhookSignature
      */
     public function handle(Request $request, Closure $next): SymfonyResponse
     {
-        $secret = config('services.n8n.webhook_secret');
+        $secret = config('services.n8n.callback_hmac_secret');
 
         if (empty($secret) || ! is_string($secret)) {
             return response()->json([
-                'error' => 'Webhook secret not configured',
+                'error' => 'Callback HMAC secret not configured',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 

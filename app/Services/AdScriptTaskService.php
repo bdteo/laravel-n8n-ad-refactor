@@ -16,14 +16,31 @@ use Illuminate\Support\Facades\Log;
 class AdScriptTaskService
 {
     /**
+     * The audit log service instance.
+     */
+    private AuditLogService $auditLogService;
+
+    /**
+     * Create a new service instance.
+     */
+    public function __construct(AuditLogService $auditLogService)
+    {
+        $this->auditLogService = $auditLogService;
+    }
+    /**
      * Create a new ad script task.
      */
     public function createTask(array $data): AdScriptTask
     {
-        return AdScriptTask::create([
+        $task = AdScriptTask::create([
             'reference_script' => $data['reference_script'],
             'outcome_description' => $data['outcome_description'],
         ]);
+        
+        // Log task creation
+        $this->auditLogService->logTaskCreation($task);
+        
+        return $task;
     }
 
     /**
@@ -47,6 +64,9 @@ class AdScriptTaskService
         }
 
         TriggerN8nWorkflow::dispatch($task);
+        
+        // Log task dispatch
+        $this->auditLogService->logTaskDispatched($task);
     }
 
     /**
@@ -64,7 +84,17 @@ class AdScriptTaskService
      */
     public function markAsProcessing(AdScriptTask $task): bool
     {
-        return $task->markAsProcessing();
+        // Store the old status for audit logging
+        $oldStatus = $task->status;
+        
+        $result = $task->markAsProcessing();
+        
+        // If status was changed, log the change
+        if ($result && $oldStatus !== $task->status) {
+            $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
+        }
+        
+        return $result;
     }
 
     /**
@@ -81,6 +111,9 @@ class AdScriptTaskService
 
             return false;
         }
+        
+        // Store the old status for audit logging
+        $oldStatus = $task->status;
 
         $result = $task->markAsCompleted(
             $payload->newScript,
@@ -88,11 +121,20 @@ class AdScriptTaskService
         );
 
         if ($result) {
+            // Log task completion in both standard and audit logs
             Log::info('Task marked as completed successfully', [
                 'task_id' => $task->id,
                 'script_length' => strlen($payload->newScript),
                 'analysis_count' => count($payload->analysis ?? []),
             ]);
+            
+            // Log status change if it occurred
+            if ($oldStatus !== $task->status) {
+                $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
+            }
+            
+            // Log task completion details
+            $this->auditLogService->logTaskCompleted($task);
         } else {
             Log::warning('Failed to mark task as completed', [
                 'task_id' => $task->id,
@@ -117,14 +159,26 @@ class AdScriptTaskService
 
             return false;
         }
+        
+        // Store the old status for audit logging
+        $oldStatus = $task->status;
 
         $result = $task->markAsFailed($payload->error);
 
         if ($result) {
+            // Log task failure in both standard and audit logs
             Log::info('Task marked as failed successfully', [
                 'task_id' => $task->id,
                 'error' => $payload->error,
             ]);
+            
+            // Log status change if it occurred
+            if ($oldStatus !== $task->status) {
+                $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
+            }
+            
+            // Log task failure details
+            $this->auditLogService->logTaskFailed($task, $payload->error);
         } else {
             Log::warning('Failed to mark task as failed', [
                 'task_id' => $task->id,
@@ -147,6 +201,13 @@ class AdScriptTaskService
             'current_status' => $task->status->value,
             'payload_type' => $payload->isSuccess() ? 'success' : ($payload->isError() ? 'error' : 'unknown'),
         ]);
+        
+        // Log webhook receipt in audit log
+        $this->auditLogService->logWebhookEvent('received', $task, [
+            'payload_type' => $payload->isSuccess() ? 'success' : ($payload->isError() ? 'error' : 'unknown'),
+            'has_new_script' => $payload->newScript !== null,
+            'has_error' => $payload->error !== null,
+        ]);
 
         // Check if task is already in a final state
         if ($task->isFinal()) {
@@ -164,6 +225,9 @@ class AdScriptTaskService
                     'task_id' => $task->id,
                     'is_idempotent' => $isIdempotent,
                 ]);
+                
+                // Log idempotent operation in audit log
+                $this->auditLogService->logIdempotentOperation($task, 'success_result', $isIdempotent);
 
                 return $isIdempotent;
             }
@@ -175,6 +239,9 @@ class AdScriptTaskService
                     'task_id' => $task->id,
                     'is_idempotent' => $isIdempotent,
                 ]);
+                
+                // Log idempotent operation in audit log
+                $this->auditLogService->logIdempotentOperation($task, 'error_result', $isIdempotent);
 
                 return $isIdempotent;
             }
@@ -185,6 +252,9 @@ class AdScriptTaskService
                 'current_status' => $task->status->value,
                 'payload_type' => $payload->isSuccess() ? 'success' : 'error',
             ]);
+            
+            // Log non-idempotent operation in audit log
+            $this->auditLogService->logIdempotentOperation($task, 'incompatible_result', false);
 
             return false;
         }
@@ -203,8 +273,26 @@ class AdScriptTaskService
             'task_id' => $task->id,
             'payload' => $payload->toArray(),
         ]);
+        
+        // Log invalid payload event
+        $this->auditLogService->logError(
+            'Invalid result payload received', 
+            new \InvalidArgumentException('Invalid payload format'), 
+            [
+                'task_id' => $task->id,
+                'payload_summary' => $payload->toArray(),
+            ]
+        );
 
-        return $task->markAsFailed('Invalid result payload received from n8n');
+        $oldStatus = $task->status;
+        $result = $task->markAsFailed('Invalid result payload received from n8n');
+        
+        if ($result && $oldStatus !== $task->status) {
+            $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
+            $this->auditLogService->logTaskFailed($task, 'Invalid result payload received from n8n');
+        }
+        
+        return $result;
     }
 
     /**
@@ -222,14 +310,27 @@ class AdScriptTaskService
 
                 // Refresh again to get updated state
                 $task->refresh();
-
-                return [
+                
+                $result = [
                     'success' => $success,
                     'task_id' => $task->id,
                     'status' => $task->status->value,
                     'was_updated' => $success,
                     'message' => $success ? 'Result processed successfully' : 'Result processing failed or was idempotent',
                 ];
+                
+                // Log the result processing outcome
+                $this->auditLogService->logApiResponse(
+                    'process_result', 
+                    $success ? 200 : 422, 
+                    [
+                        'task_id' => $task->id,
+                        'was_updated' => $success,
+                        'status' => $task->status->value,
+                    ]
+                );
+                
+                return $result;
             });
         } catch (\Exception $e) {
             Log::error('Exception during result processing', [
@@ -237,6 +338,13 @@ class AdScriptTaskService
                 'exception' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+            
+            // Log the exception in the audit log
+            $this->auditLogService->logError(
+                'Exception during result processing', 
+                $e, 
+                ['task_id' => $task->id]
+            );
 
             return [
                 'success' => false,
@@ -254,7 +362,15 @@ class AdScriptTaskService
      */
     public function createWebhookPayload(AdScriptTask $task): N8nWebhookPayload
     {
-        return N8nWebhookPayload::fromAdScriptTask($task);
+        $payload = N8nWebhookPayload::fromAdScriptTask($task);
+        
+        // Log webhook creation in audit log
+        $this->auditLogService->logWebhookEvent('sent', $task, [
+            'webhook_type' => 'task_processing',
+            'payload_id' => $payload->id,
+        ]);
+        
+        return $payload;
     }
 
     /**
@@ -286,6 +402,17 @@ class AdScriptTaskService
      */
     public function markAsFailed(AdScriptTask $task, string $errorDetails): bool
     {
-        return $task->markAsFailed($errorDetails);
+        // Store the old status for audit logging
+        $oldStatus = $task->status;
+        
+        $result = $task->markAsFailed($errorDetails);
+        
+        // If status was changed, log the change
+        if ($result && $oldStatus !== $task->status) {
+            $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
+            $this->auditLogService->logTaskFailed($task, $errorDetails);
+        }
+        
+        return $result;
     }
 }

@@ -1,66 +1,175 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Laravel n8n AI Ad Script Refactoring System
+# Laravel n8n AI Ad Script Refactoring System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Project Overview
 
-## About Laravel
+This project integrates Laravel with n8n to provide an asynchronous API service for AI-powered ad script refactoring. It demonstrates a robust architecture for delegating AI processing tasks from a Laravel application to n8n workflows, ensuring proper error handling and idempotent operations.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Architecture
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```mermaid
+sequenceDiagram
+    participant Client as API Consumer
+    participant LaravelAPI as Laravel API (/api/ad-scripts)
+    participant LaravelQueue as Laravel Queue (Redis)
+    participant N8nTriggerJob as TriggerN8nWorkflow Job
+    participant N8nWorkflow as n8n Workflow
+    participant OpenAI as AI Agent (GPT-4o)
+    participant LaravelCallback as Laravel Callback (/api/ad-scripts/{id}/result)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+    Client->>+LaravelAPI: POST /api/ad-scripts (JSON: ref_script, outcome_desc)
+    LaravelAPI->>LaravelAPI: Validate, Create AdScriptTask (status: PENDING)
+    LaravelAPI->>LaravelQueue: Dispatch N8nTriggerJob
+    LaravelAPI-->>-Client: HTTP 202 Accepted (task_id, status)
 
-## Learning Laravel
+    LaravelQueue->>+N8nTriggerJob: Process Job
+    N8nTriggerJob->>N8nTriggerJob: Update Task Status (PROCESSING)
+    N8nTriggerJob->>+N8nWorkflow: POST /webhook/ad-script-processing (task_id, script, outcome, AUTH)
+    N8nWorkflow-->>-N8nTriggerJob: HTTP 200 OK (Webhook received)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+    N8nWorkflow->>+OpenAI: Analyze & Generate Script
+    OpenAI-->>-N8nWorkflow: new_script, analysis
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+    alt Success
+        N8nWorkflow->>+LaravelCallback: POST /api/ad-scripts/{id}/result (JSON: new_script, analysis, HMAC_AUTH)
+        LaravelCallback->>LaravelCallback: Verify HMAC, Validate, Update AdScriptTask (status: COMPLETED)
+        LaravelCallback-->>-N8nWorkflow: HTTP 200 OK
+    else AI/Workflow Error
+        N8nWorkflow->>+LaravelCallback: POST /api/ad-scripts/{id}/result (JSON: error_details, HMAC_AUTH)
+        LaravelCallback->>LaravelCallback: Verify HMAC, Validate, Update AdScriptTask (status: FAILED)
+        LaravelCallback-->>-N8nWorkflow: HTTP 200 OK
+    end
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Setup & Run Instructions
 
-## Laravel Sponsors
+### Prerequisites
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- Docker and Docker Compose
+- `make` (optional, for using Makefile targets)
 
-### Premium Partners
+### Installation
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd laravel-n8n-ad-refactor
+   ```
 
-## Contributing
+2. **Environment Setup**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and set the following required variables:
+   - `APP_KEY` (generate using `php artisan key:generate`)
+   - Database credentials (or keep defaults for Docker setup)
+   - `N8N_TRIGGER_WEBHOOK_URL` (URL to n8n webhook)
+   - `N8N_AUTH_HEADER_KEY` (header name for authenticating to n8n)
+   - `N8N_AUTH_HEADER_VALUE` (secret value for authenticating to n8n)
+   - `N8N_CALLBACK_HMAC_SECRET` (shared secret for verifying callbacks from n8n)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. **Start the Services**
+   ```bash
+   make dev-setup
+   ```
+   Or manually with Docker:
+   ```bash
+   docker-compose up -d
+   docker-compose exec app composer install
+   docker-compose exec app php artisan migrate
+   ```
 
-## Code of Conduct
+4. **n8n Workflow Setup**
+   - Access n8n at http://localhost:5678
+   - Import the workflow from `n8n/workflows/ad-script-refactor-workflow.json`
+   - Configure OpenAI credentials in n8n
+   - Ensure the trigger webhook uses header authentication matching your `N8N_AUTH_HEADER_KEY` and `N8N_AUTH_HEADER_VALUE`
+   - Ensure the callback HTTP request computes an HMAC signature using `N8N_CALLBACK_HMAC_SECRET`
+   - For detailed n8n setup instructions, see [n8n/README.md](n8n/README.md)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Default Ports
 
-## Security Vulnerabilities
+- Laravel: http://localhost:8000
+- n8n: http://localhost:5678
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## API Usage
+
+### Create Ad Script Task
+
+```bash
+curl -X POST http://localhost:8000/api/ad-scripts \
+  -H "Content-Type: application/json" \
+  -d '{"reference_script": "function oldAd() { var count = 0; if(count == 0) { alert(\"First visit!\"); } }", "outcome_description": "Modernize to ES6+ with const/let and template literals"}'
+```
+
+Response (202 Accepted):
+```json
+{
+  "data": {
+    "id": "uuid-string",
+    "status": "pending",
+    "reference_script": "function oldAd() { var count = 0; if(count == 0) { alert(\"First visit!\"); } }",
+    "outcome_description": "Modernize to ES6+ with const/let and template literals"
+  }
+}
+```
+
+### Check Task Status
+
+```bash
+curl -X GET http://localhost:8000/api/ad-scripts/{task_id}
+```
+
+Response (200 OK):
+```json
+{
+  "data": {
+    "id": "uuid-string",
+    "status": "completed",
+    "reference_script": "function oldAd() { var count = 0; if(count == 0) { alert(\"First visit!\"); } }",
+    "outcome_description": "Modernize to ES6+ with const/let and template literals",
+    "new_script": "function oldAd() { let count = 0; if(count === 0) { alert(`First visit!`); } }",
+    "analysis": "Modernized using let instead of var, strict equality, and template literals."
+  }
+}
+```
+
+## Running Tests
+
+```bash
+make test
+```
+
+Or for test coverage:
+
+```bash
+make test-coverage
+```
+
+## Code Quality Tools
+
+- **PHP CS Fixer**: `make cs-fix`
+- **PHPStan**: `make analyse`
+- **Husky Git Hooks**: Automatically validate commits
+
+## Implementation Notes
+
+### Key Features
+
+- **Asynchronous Processing**: Tasks are processed in the background using Laravel queues
+- **Idempotent Operations**: Callback endpoints are designed to handle duplicate requests
+- **Error Handling**: Comprehensive error handling and reporting
+- **Security**: HMAC signature verification for callbacks
+- **Rate Limiting**: API endpoints are rate-limited to prevent abuse
+
+### Design Philosophy
+
+- **"5 Lines or Less"**: Methods are kept small and focused for readability
+- **Interface-based Design**: Components are decoupled through interfaces
+- **Defensive Programming**: Comprehensive validation and error handling
+- **Test-Driven Development**: High test coverage for core functionality
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+MIT

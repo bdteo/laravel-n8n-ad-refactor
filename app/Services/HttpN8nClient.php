@@ -20,7 +20,8 @@ class HttpN8nClient implements N8nClientInterface
 {
     private Client $httpClient;
     private string $webhookUrl;
-    private ?string $webhookSecret;
+    private ?string $authHeaderKey;
+    private ?string $authHeaderValue;
     private int $timeout;
     private int $retryAttempts;
     private array $retryDelays;
@@ -28,18 +29,22 @@ class HttpN8nClient implements N8nClientInterface
     public function __construct(
         ?Client $httpClient = null,
         ?string $webhookUrl = null,
-        ?string $webhookSecret = null,
+        ?string $authHeaderKey = null,
+        ?string $authHeaderValue = null,
         int $timeout = 30,
         int $retryAttempts = 3,
         array $retryDelays = [1000, 2000, 3000]
     ) {
         $this->httpClient = $httpClient ?? new Client();
 
-        $configUrl = config('services.n8n.webhook_url');
+        $configUrl = config('services.n8n.trigger_webhook_url');
         $this->webhookUrl = $webhookUrl ?? (is_string($configUrl) ? $configUrl : '');
 
-        $configSecret = config('services.n8n.webhook_secret');
-        $this->webhookSecret = $webhookSecret ?? (is_string($configSecret) ? $configSecret : null);
+        $configHeaderKey = config('services.n8n.auth_header_key');
+        $this->authHeaderKey = $authHeaderKey ?? (is_string($configHeaderKey) ? $configHeaderKey : null);
+        
+        $configHeaderValue = config('services.n8n.auth_header_value');
+        $this->authHeaderValue = $authHeaderValue ?? (is_string($configHeaderValue) ? $configHeaderValue : null);
 
         $this->timeout = $timeout;
         $this->retryAttempts = $retryAttempts;
@@ -185,8 +190,8 @@ class HttpN8nClient implements N8nClientInterface
             'User-Agent' => 'Laravel-N8n-Client/1.0',
         ];
 
-        if ($this->webhookSecret) {
-            $headers['X-Webhook-Secret'] = $this->webhookSecret;
+        if ($this->authHeaderKey && $this->authHeaderValue) {
+            $headers[$this->authHeaderKey] = $this->authHeaderValue;
         }
 
         return $headers;

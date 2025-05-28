@@ -24,7 +24,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $payload = '{"test": "data"}';
         $signature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $signature);
@@ -51,7 +51,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $payload = '{"test": "data"}';
         $invalidSignature = 'sha256=invalid-signature';
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $invalidSignature);
@@ -86,7 +86,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $secret = 'test-secret';
         $payload = '{"test": "data"}';
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         // No signature header set
@@ -121,7 +121,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $secret = 'test-secret';
         $payload = '{"test": "data"}';
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', '');
@@ -156,7 +156,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $payload = '{"test": "data"}';
         $signature = 'sha256=some-signature';
 
-        config(['services.n8n.webhook_secret' => null]);
+        config(['services.n8n.callback_hmac_secret' => null]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $signature);
@@ -182,7 +182,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $responseData = json_decode($content, true);
         $this->assertIsArray($responseData);
         $this->assertArrayHasKey('error', $responseData);
-        $this->assertEquals('Webhook secret not configured', $responseData['error']);
+        $this->assertEquals('Callback HMAC secret not configured', $responseData['error']);
     }
 
     public function test_middleware_fails_when_secret_is_empty_string(): void
@@ -191,7 +191,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $payload = '{"test": "data"}';
         $signature = 'sha256=some-signature';
 
-        config(['services.n8n.webhook_secret' => '']);
+        config(['services.n8n.callback_hmac_secret' => '']);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $signature);
@@ -217,7 +217,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $responseData = json_decode($content, true);
         $this->assertIsArray($responseData);
         $this->assertArrayHasKey('error', $responseData);
-        $this->assertEquals('Webhook secret not configured', $responseData['error']);
+        $this->assertEquals('Callback HMAC secret not configured', $responseData['error']);
     }
 
     public function test_middleware_handles_different_payload_content(): void
@@ -227,7 +227,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $payload = '{"complex": {"nested": {"data": [1, 2, 3]}, "special": "chars!@#$%"}}';
         $signature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $signature);
@@ -254,7 +254,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $payload = '';
         $signature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $signature);
@@ -282,7 +282,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $validSignature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
         $invalidSignature = 'sha256=' . substr($validSignature, 0, -1) . 'x'; // Change last character
 
-        config(['services.n8n.webhook_secret' => $secret]);
+        config(['services.n8n.callback_hmac_secret' => $secret]);
 
         $request = Request::create('/test', 'POST', [], [], [], [], $payload);
         $request->headers->set('X-N8N-Signature', $invalidSignature);

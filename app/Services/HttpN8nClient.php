@@ -42,7 +42,7 @@ class HttpN8nClient implements N8nClientInterface
 
         $configHeaderKey = config('services.n8n.auth_header_key');
         $this->authHeaderKey = $authHeaderKey ?? (is_string($configHeaderKey) ? $configHeaderKey : null);
-        
+
         $configHeaderValue = config('services.n8n.auth_header_value');
         $this->authHeaderValue = $authHeaderValue ?? (is_string($configHeaderValue) ? $configHeaderValue : null);
 

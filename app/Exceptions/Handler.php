@@ -72,23 +72,22 @@ class Handler extends ExceptionHandler
             'trace' => $this->getFilteredTrace($exception),
         ];
 
-        // Add request context if available
-        if (request()) {
-            $context['request'] = [
-                'url' => request()->fullUrl(),
-                'method' => request()->method(),
-                'ip' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'headers' => $this->getFilteredHeaders(request()),
-            ];
+        // Add request context
+        $request = request();
+        $context['request'] = [
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'headers' => $this->getFilteredHeaders($request),
+        ];
 
-            // Add user context if authenticated
-            if (auth()->check()) {
-                $context['user'] = [
-                    'id' => auth()->id(),
-                    'email' => auth()->user()->email ?? 'unknown',
-                ];
-            }
+        // Add user context if authenticated
+        if (auth()->check()) {
+            $context['user'] = [
+                'id' => auth()->id(),
+                'email' => auth()->user()->email ?? 'unknown',
+            ];
         }
 
         // Add specific context for custom exceptions

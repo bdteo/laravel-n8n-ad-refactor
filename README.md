@@ -172,3 +172,40 @@ make test-coverage
 ## License
 
 MIT
+
+## API Testing with Postman & Newman
+
+This project uses a programmatic Postman collection and Newman for automated API testing.
+
+### Running API Tests Locally
+
+1. Ensure your Laravel app is running at `http://localhost:8000`.
+2. Install Newman globally if you haven't:
+   ```bash
+   yarn global add newman newman-reporter-htmlextra
+   ```
+3. Run the API tests:
+   ```bash
+   yarn test:api
+   ```
+   - This uses `postman/Ad_Script_Refactor_API.postman_collection.json` and `postman/local_dev.postman_environment.json`.
+   - An HTML report will be generated at `postman/report.html`.
+
+### Running API Tests in CI
+
+- Use the `test:api:ci` script or run Newman directly with the CI environment file:
+  ```bash
+  yarn test:api:ci
+  ```
+  - This uses `postman/ci.postman_environment.json` (secrets should be injected at runtime).
+  - A JUnit XML report will be generated at `postman/junit_report.xml`.
+
+### Environment Files
+
+- `postman/local_dev.postman_environment.json`: For local development/testing.
+- `postman/ci.postman_environment.json`: For CI/CD pipelines (use secret injection for sensitive values).
+
+### Adding/Editing API Tests
+
+- Edit `postman/Ad_Script_Refactor_API.postman_collection.json` directly (code-first approach).
+- See the [Postman Collection Format v2.1.0 docs](https://schema.getpostman.com/json/collection/v2.1.0/docs/index.html) for structure and scripting options.

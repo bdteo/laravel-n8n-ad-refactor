@@ -29,7 +29,7 @@ class AdScriptWorkflowTest extends TestCase
 
         // Set up test configuration
         config([
-            'services.n8n.webhook_secret' => 'test-webhook-secret',
+            'services.n8n.callback_hmac_secret' => 'test-webhook-secret',
             'services.n8n.webhook_url' => 'https://test-n8n.example.com/webhook/test',
             'services.n8n.timeout' => 30,
             'services.n8n.retry_attempts' => 3,
@@ -45,7 +45,7 @@ class AdScriptWorkflowTest extends TestCase
     private function createWebhookSignature(array $data): string
     {
         $payload = json_encode($data);
-        $secret = config('services.n8n.webhook_secret');
+        $secret = config('services.n8n.callback_hmac_secret');
 
         if (! is_string($secret) || $payload === false) {
             throw new \RuntimeException('Invalid webhook configuration for testing');
@@ -277,7 +277,7 @@ class AdScriptWorkflowTest extends TestCase
 
         // Create signature for malformed JSON
         $malformedJson = '{"new_script": "test", "analysis":}'; // Invalid JSON
-        $signature = 'sha256=' . hash_hmac('sha256', $malformedJson, config('services.n8n.webhook_secret'));
+        $signature = 'sha256=' . hash_hmac('sha256', $malformedJson, config('services.n8n.callback_hmac_secret'));
 
         $response = $this->call(
             'POST',
@@ -434,7 +434,7 @@ class AdScriptWorkflowTest extends TestCase
         $recoveryResponse = $this->postJsonWithSignature("/api/ad-scripts/{$task->id}/result", $successPayload);
         $recoveryResponse->assertStatus(422)
             ->assertJson([
-                'message' => 'Result processing failed or was idempotent',
+                'message' => 'Conflict with final state.',
                 'data' => ['was_updated' => false],
             ]);
 

@@ -8,6 +8,7 @@
 .env
 .env.backup
 .env.production
+.env.*.local
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
@@ -34,3 +35,7 @@ task_*.txt
 prd*.txt
 *.bak
 
+postman/report.html
+postman/junit_report.xml
+
+/coverage/

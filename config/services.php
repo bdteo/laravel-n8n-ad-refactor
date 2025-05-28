@@ -36,7 +36,7 @@ return [
         'trigger_webhook_url' => env('N8N_TRIGGER_WEBHOOK_URL'),
         'auth_header_key' => env('N8N_AUTH_HEADER_KEY', 'X-Laravel-Trigger-Auth'),
         'auth_header_value' => env('N8N_AUTH_HEADER_VALUE'),
-        
+
         // For Laravel to verify HMAC signatures from n8n callbacks
         'callback_hmac_secret' => env('N8N_CALLBACK_HMAC_SECRET'),
     ],

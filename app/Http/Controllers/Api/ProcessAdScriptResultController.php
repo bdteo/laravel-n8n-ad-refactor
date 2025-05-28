@@ -32,7 +32,27 @@ class ProcessAdScriptResultController extends Controller
      */
     public function __invoke(ProcessAdScriptResultRequest $request, AdScriptTask $task): JsonResponse
     {
-        // Log API request in audit log
+        $this->logApiRequest($request, $task);
+
+        try {
+            $this->logProcessingStart($request, $task);
+            $resultPayload = $this->createResultPayload($request);
+            $result = $this->processResult($task, $resultPayload);
+            $this->logProcessingCompletion($task, $result);
+            $response = $this->buildSuccessResponse($task, $result);
+            $this->logApiResponse($task, $result, $response);
+
+            return $response;
+        } catch (Throwable $e) {
+            return $this->handleProcessingException($task, $e);
+        }
+    }
+
+    /**
+     * Log the incoming API request.
+     */
+    private function logApiRequest(ProcessAdScriptResultRequest $request, AdScriptTask $task): void
+    {
         $this->auditLogService->logApiRequest('process_ad_script_result', [
             'task_id' => $task->id,
             'task_status' => $task->status->value,
@@ -41,63 +61,94 @@ class ProcessAdScriptResultController extends Controller
             'client_ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
-        
-        try {
-            Log::info('Processing ad script result', [
-                'task_id' => $task->id,
-                'task_status' => $task->status->value,
-                'has_new_script' => ! empty($request->validated()['new_script']),
-                'has_error' => ! empty($request->validated()['error']),
-                'request_timestamp' => now()->toISOString(),
-            ]);
+    }
 
-            // Create result payload from request
-            $resultPayload = N8nResultPayload::fromArray($request->validated());
+    /**
+     * Log the start of processing.
+     */
+    private function logProcessingStart(ProcessAdScriptResultRequest $request, AdScriptTask $task): void
+    {
+        Log::info('Processing ad script result', [
+            'task_id' => $task->id,
+            'task_status' => $task->status->value,
+            'has_new_script' => ! empty($request->validated()['new_script']),
+            'has_error' => ! empty($request->validated()['error']),
+            'request_timestamp' => now()->toISOString(),
+        ]);
+    }
 
-            // Process the result with enhanced idempotency
-            $result = $this->adScriptTaskService->processResultIdempotent($task, $resultPayload);
+    /**
+     * Create result payload from request.
+     */
+    private function createResultPayload(ProcessAdScriptResultRequest $request): N8nResultPayload
+    {
+        return N8nResultPayload::fromArray($request->validated());
+    }
 
-            // Log the processing result to both regular and audit logs
-            Log::info('Ad script result processing completed', [
-                'task_id' => $task->id,
-                'success' => $result['success'],
-                'was_updated' => $result['was_updated'],
-                'final_status' => $result['status'],
-                'message' => $result['message'],
-            ]);
+    /**
+     * Process the result with enhanced idempotency.
+     */
+    private function processResult(AdScriptTask $task, N8nResultPayload $resultPayload): array
+    {
+        return $this->adScriptTaskService->processResultIdempotent($task, $resultPayload);
+    }
 
-            // Build response
-            $response = $this->buildSuccessResponse($task, $result);
-            
-            // Log API response in audit log
-            $this->auditLogService->logApiResponse('process_ad_script_result', $response->getStatusCode(), [
-                'task_id' => $task->id,
-                'success' => $result['success'],
-                'was_updated' => $result['was_updated'],
-                'final_status' => $result['status'],
-            ]);
-            
-            return $response;
+    /**
+     * Log the completion of processing.
+     */
+    private function logProcessingCompletion(AdScriptTask $task, array $result): void
+    {
+        Log::info('Ad script result processing completed', [
+            'task_id' => $task->id,
+            'success' => $result['success'],
+            'was_updated' => $result['was_updated'],
+            'final_status' => $result['status'],
+            'message' => $result['message'],
+        ]);
+    }
 
-        } catch (BusinessValidationException $e) {
-            $this->auditLogService->logError('Processing ad script result - validation error', $e, [
-                'task_id' => $task->id,
-                'task_status' => $task->status->value,
-            ]);
-            return $this->handleException($e, 'processing ad script result - validation error');
-        } catch (AdScriptTaskException $e) {
-            $this->auditLogService->logError('Processing ad script result - task error', $e, [
-                'task_id' => $task->id,
-                'task_status' => $task->status->value,
-            ]);
-            return $this->handleException($e, 'processing ad script result - task error');
-        } catch (Throwable $e) {
-            $this->auditLogService->logError('Processing ad script result - unexpected error', $e, [
-                'task_id' => $task->id,
-                'task_status' => $task->status->value,
-            ]);
-            return $this->handleException($e, 'processing ad script result - unexpected error');
+    /**
+     * Log the API response.
+     */
+    private function logApiResponse(AdScriptTask $task, array $result, JsonResponse $response): void
+    {
+        $this->auditLogService->logApiResponse('process_ad_script_result', $response->getStatusCode(), [
+            'task_id' => $task->id,
+            'success' => $result['success'],
+            'was_updated' => $result['was_updated'],
+            'final_status' => $result['status'],
+        ]);
+    }
+
+    /**
+     * Handle processing exceptions.
+     */
+    private function handleProcessingException(AdScriptTask $task, Throwable $e): JsonResponse
+    {
+        $errorContext = $this->getErrorContext($e);
+
+        $this->auditLogService->logError("Processing ad script result - {$errorContext}", $e, [
+            'task_id' => $task->id,
+            'task_status' => $task->status->value,
+        ]);
+
+        return $this->handleException($e, "processing ad script result - {$errorContext}");
+    }
+
+    /**
+     * Get error context based on exception type.
+     */
+    private function getErrorContext(Throwable $e): string
+    {
+        if ($e instanceof BusinessValidationException) {
+            return 'validation error';
         }
+
+        if ($e instanceof AdScriptTaskException) {
+            return 'task error';
+        }
+
+        return 'unexpected error';
     }
 
     /**

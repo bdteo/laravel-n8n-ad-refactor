@@ -36,10 +36,10 @@ class AdScriptTaskService
             'reference_script' => $data['reference_script'],
             'outcome_description' => $data['outcome_description'],
         ]);
-        
+
         // Log task creation
         $this->auditLogService->logTaskCreation($task);
-        
+
         return $task;
     }
 
@@ -64,7 +64,7 @@ class AdScriptTaskService
         }
 
         TriggerN8nWorkflow::dispatch($task);
-        
+
         // Log task dispatch
         $this->auditLogService->logTaskDispatched($task);
     }
@@ -86,14 +86,14 @@ class AdScriptTaskService
     {
         // Store the old status for audit logging
         $oldStatus = $task->status;
-        
+
         $result = $task->markAsProcessing();
-        
+
         // If status was changed, log the change
         if ($result && $oldStatus !== $task->status) {
             $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
         }
-        
+
         return $result;
     }
 
@@ -111,7 +111,7 @@ class AdScriptTaskService
 
             return false;
         }
-        
+
         // Store the old status for audit logging
         $oldStatus = $task->status;
 
@@ -127,12 +127,12 @@ class AdScriptTaskService
                 'script_length' => strlen($payload->newScript),
                 'analysis_count' => count($payload->analysis ?? []),
             ]);
-            
+
             // Log status change if it occurred
             if ($oldStatus !== $task->status) {
                 $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
             }
-            
+
             // Log task completion details
             $this->auditLogService->logTaskCompleted($task);
         } else {
@@ -159,7 +159,7 @@ class AdScriptTaskService
 
             return false;
         }
-        
+
         // Store the old status for audit logging
         $oldStatus = $task->status;
 
@@ -171,12 +171,12 @@ class AdScriptTaskService
                 'task_id' => $task->id,
                 'error' => $payload->error,
             ]);
-            
+
             // Log status change if it occurred
             if ($oldStatus !== $task->status) {
                 $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
             }
-            
+
             // Log task failure details
             $this->auditLogService->logTaskFailed($task, $payload->error);
         } else {
@@ -201,7 +201,7 @@ class AdScriptTaskService
             'current_status' => $task->status->value,
             'payload_type' => $payload->isSuccess() ? 'success' : ($payload->isError() ? 'error' : 'unknown'),
         ]);
-        
+
         // Log webhook receipt in audit log
         $this->auditLogService->logWebhookEvent('received', $task, [
             'payload_type' => $payload->isSuccess() ? 'success' : ($payload->isError() ? 'error' : 'unknown'),
@@ -225,7 +225,7 @@ class AdScriptTaskService
                     'task_id' => $task->id,
                     'is_idempotent' => $isIdempotent,
                 ]);
-                
+
                 // Log idempotent operation in audit log
                 $this->auditLogService->logIdempotentOperation($task, 'success_result', $isIdempotent);
 
@@ -239,7 +239,7 @@ class AdScriptTaskService
                     'task_id' => $task->id,
                     'is_idempotent' => $isIdempotent,
                 ]);
-                
+
                 // Log idempotent operation in audit log
                 $this->auditLogService->logIdempotentOperation($task, 'error_result', $isIdempotent);
 
@@ -252,7 +252,7 @@ class AdScriptTaskService
                 'current_status' => $task->status->value,
                 'payload_type' => $payload->isSuccess() ? 'success' : 'error',
             ]);
-            
+
             // Log non-idempotent operation in audit log
             $this->auditLogService->logIdempotentOperation($task, 'incompatible_result', false);
 
@@ -273,11 +273,11 @@ class AdScriptTaskService
             'task_id' => $task->id,
             'payload' => $payload->toArray(),
         ]);
-        
+
         // Log invalid payload event
         $this->auditLogService->logError(
-            'Invalid result payload received', 
-            new \InvalidArgumentException('Invalid payload format'), 
+            'Invalid result payload received',
+            new \InvalidArgumentException('Invalid payload format'),
             [
                 'task_id' => $task->id,
                 'payload_summary' => $payload->toArray(),
@@ -286,12 +286,12 @@ class AdScriptTaskService
 
         $oldStatus = $task->status;
         $result = $task->markAsFailed('Invalid result payload received from n8n');
-        
+
         if ($result && $oldStatus !== $task->status) {
             $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
             $this->auditLogService->logTaskFailed($task, 'Invalid result payload received from n8n');
         }
-        
+
         return $result;
     }
 
@@ -303,58 +303,141 @@ class AdScriptTaskService
     {
         try {
             return DB::transaction(function () use ($task, $payload) {
-                // Refresh task to get latest state
-                $task->refresh();
+                $task->refresh(); // 1
+                if ($this->isOutcomeAlreadyApplied($task, $payload)) { // 2 (delegated check)
+                    return $this->buildIdempotentResponse($task, true); // 3
+                }
+                if ($this->isConflictWithFinalState($task, $payload)) { // 4 (delegated check)
+                    return $this->buildIdempotentResponse($task, false, 'Conflict with final state.'); // 5
+                }
 
-                $success = $this->processResult($task, $payload);
-
-                // Refresh again to get updated state
-                $task->refresh();
-                
-                $result = [
-                    'success' => $success,
-                    'task_id' => $task->id,
-                    'status' => $task->status->value,
-                    'was_updated' => $success,
-                    'message' => $success ? 'Result processed successfully' : 'Result processing failed or was idempotent',
-                ];
-                
-                // Log the result processing outcome
-                $this->auditLogService->logApiResponse(
-                    'process_result', 
-                    $success ? 200 : 422, 
-                    [
-                        'task_id' => $task->id,
-                        'was_updated' => $success,
-                        'status' => $task->status->value,
-                    ]
-                );
-                
-                return $result;
+                return $this->applyResultAndBuildResponse($task, $payload); // 6 (delegated processing)
             });
         } catch (\Exception $e) {
-            Log::error('Exception during result processing', [
-                'task_id' => $task->id,
-                'exception' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            // Log the exception in the audit log
-            $this->auditLogService->logError(
-                'Exception during result processing', 
-                $e, 
-                ['task_id' => $task->id]
-            );
-
-            return [
-                'success' => false,
-                'task_id' => $task->id,
-                'status' => $task->status->value,
-                'was_updated' => false,
-                'message' => 'Exception occurred during processing',
-                'error' => $e->getMessage(),
-            ];
+            return $this->handleProcessingException($task, $e); // Clean error handling
         }
+    }
+
+    /**
+     * Check if outcome has already been applied to the task.
+     */
+    private function isOutcomeAlreadyApplied(AdScriptTask $task, N8nResultPayload $payload): bool
+    {
+        if (! $task->isFinal()) {
+            return false;
+        }
+
+        if ($payload->isSuccess() && $task->status === TaskStatus::COMPLETED) {
+            return $task->new_script === $payload->newScript &&
+                   $task->analysis === ($payload->analysis ?? []);
+        }
+
+        if ($payload->isError() && $task->status === TaskStatus::FAILED) {
+            return $task->error_details === $payload->error;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if there's a conflict with a final state.
+     */
+    private function isConflictWithFinalState(AdScriptTask $task, N8nResultPayload $payload): bool
+    {
+        if (! $task->isFinal()) {
+            return false;
+        }
+
+        if ($payload->isSuccess() && $task->status !== TaskStatus::COMPLETED) {
+            return true;
+        }
+
+        if ($payload->isError() && $task->status !== TaskStatus::FAILED) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Apply the result and build a response.
+     */
+    private function applyResultAndBuildResponse(AdScriptTask $task, N8nResultPayload $payload): array
+    {
+        $success = $this->processResult($task, $payload);
+        $task->refresh();
+        $this->logResultProcessingOutcome($task, $success);
+
+        return $this->buildIdempotentResponse(
+            $task,
+            $success,
+            $success ? 'Result processed successfully' : 'Result processing failed'
+        );
+    }
+
+    /**
+     * Log the result processing outcome.
+     */
+    private function logResultProcessingOutcome(AdScriptTask $task, bool $success): void
+    {
+        $this->auditLogService->logApiResponse(
+            'process_result',
+            $success ? 200 : 422,
+            [
+                'task_id' => $task->id,
+                'was_updated' => $success,
+                'status' => $task->status->value,
+            ]
+        );
+    }
+
+    /**
+     * Build a standardized idempotent response.
+     */
+    private function buildIdempotentResponse(AdScriptTask $task, bool $success, ?string $message = null): array
+    {
+        return [
+            'success' => $success,
+            'task_id' => $task->id,
+            'status' => $task->status->value,
+            'was_updated' => $success,
+            'message' => $message ?? ($success ? 'No changes needed' : 'Cannot process in current state'),
+        ];
+    }
+
+    /**
+     * Handle exceptions during processing.
+     */
+    private function handleProcessingException(AdScriptTask $task, \Exception $e): array
+    {
+        $this->logProcessingException($task, $e);
+
+        return [
+            'success' => false,
+            'task_id' => $task->id,
+            'status' => $task->status->value,
+            'was_updated' => false,
+            'message' => 'Exception occurred during processing',
+            'error' => $e->getMessage(),
+        ];
+    }
+
+    /**
+     * Log a processing exception.
+     */
+    private function logProcessingException(AdScriptTask $task, \Exception $e): void
+    {
+        Log::error('Exception during result processing', [
+            'task_id' => $task->id,
+            'exception' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+
+        $this->auditLogService->logError(
+            'Exception during result processing',
+            $e,
+            ['task_id' => $task->id]
+        );
     }
 
     /**
@@ -363,13 +446,13 @@ class AdScriptTaskService
     public function createWebhookPayload(AdScriptTask $task): N8nWebhookPayload
     {
         $payload = N8nWebhookPayload::fromAdScriptTask($task);
-        
+
         // Log webhook creation in audit log
         $this->auditLogService->logWebhookEvent('sent', $task, [
             'webhook_type' => 'task_processing',
-            'payload_id' => $payload->id,
+            'payload_task_id' => $payload->taskId, // Using the correct property name
         ]);
-        
+
         return $payload;
     }
 
@@ -404,15 +487,15 @@ class AdScriptTaskService
     {
         // Store the old status for audit logging
         $oldStatus = $task->status;
-        
+
         $result = $task->markAsFailed($errorDetails);
-        
+
         // If status was changed, log the change
         if ($result && $oldStatus !== $task->status) {
             $this->auditLogService->logTaskStatusChange($task, $oldStatus, $task->status);
             $this->auditLogService->logTaskFailed($task, $errorDetails);
         }
-        
+
         return $result;
     }
 }

@@ -5,7 +5,9 @@
     "dev": "vite",
     "build": "vite build",
     "prepare": "husky",
-    "commit": "cz"
+    "commit": "cz",
+    "test:api": "newman run postman/Ad_Script_Refactor_API.postman_collection.json -e postman/local_dev.postman_environment.json --bail -r cli,htmlextra --reporter-htmlextra-export postman/report.html",
+    "test:api:ci": "newman run postman/Ad_Script_Refactor_API.postman_collection.json -e postman/ci.postman_environment.json --bail -r cli,junit --reporter-junit-export postman/junit_report.xml"
   },
   "devDependencies": {
     "axios": "^1.6.4",

@@ -32,7 +32,7 @@ class AdScriptIntegrationTest extends TestCase
 
         // Set up test configuration
         config([
-            'services.n8n.webhook_secret' => 'integration-test-secret',
+            'services.n8n.callback_hmac_secret' => 'integration-test-secret',
             'services.n8n.webhook_url' => 'https://test-n8n.example.com/webhook/test',
             'services.n8n.timeout' => 30,
             'services.n8n.retry_attempts' => 3,
@@ -48,7 +48,7 @@ class AdScriptIntegrationTest extends TestCase
     private function createWebhookSignature(array $data): string
     {
         $payload = json_encode($data);
-        $secret = config('services.n8n.webhook_secret');
+        $secret = config('services.n8n.callback_hmac_secret');
 
         if (! is_string($secret) || $payload === false) {
             throw new \RuntimeException('Invalid webhook configuration for testing');
@@ -283,11 +283,13 @@ class AdScriptIntegrationTest extends TestCase
             ->andReturn($mockResponse);
 
         // Create HttpN8nClient with mocked Guzzle client
-        $webhookSecret = config('services.n8n.webhook_secret');
+        $authHeaderKey = config('services.n8n.auth_header_key');
+        $authHeaderValue = config('services.n8n.auth_header_value');
         $httpN8nClient = new \App\Services\HttpN8nClient(
             httpClient: $mockGuzzleClient,
             webhookUrl: 'https://test-n8n.example.com/webhook/test',
-            webhookSecret: is_string($webhookSecret) ? $webhookSecret : 'test-secret'
+            authHeaderKey: is_string($authHeaderKey) ? $authHeaderKey : 'X-Test-Auth',
+            authHeaderValue: is_string($authHeaderValue) ? $authHeaderValue : 'test-secret'
         );
 
         // Bind the mocked client to the container

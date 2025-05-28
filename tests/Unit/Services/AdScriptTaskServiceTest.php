@@ -24,7 +24,10 @@ class AdScriptTaskServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new AdScriptTaskService();
+
+        // Mock the AuditLogService
+        $mockAuditLogService = $this->createMock(\App\Services\AuditLogService::class);
+        $this->service = new AdScriptTaskService($mockAuditLogService);
     }
 
     public function test_create_task_creates_new_task_with_correct_data(): void

@@ -23,7 +23,8 @@ class HttpN8nClientTest extends TestCase
     /** @var Client&MockInterface */
     private $mockHttpClient;
     private string $testWebhookUrl = 'https://test.n8n.io/webhook/test';
-    private string $testWebhookSecret = 'test-secret';
+    private string $testAuthHeaderKey = 'X-Test-Auth';
+    private string $testAuthHeaderValue = 'test-secret';
 
     protected function setUp(): void
     {
@@ -41,7 +42,12 @@ class HttpN8nClientTest extends TestCase
 
     public function test_implements_n8n_client_interface(): void
     {
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
 
         $this->assertInstanceOf(N8nClientInterface::class, $client);
     }
@@ -51,7 +57,12 @@ class HttpN8nClientTest extends TestCase
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Webhook URL is required');
 
-        new HttpN8nClient($this->mockHttpClient, '');
+        new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: '',
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
     }
 
     public function test_constructor_validates_invalid_webhook_url(): void
@@ -59,7 +70,12 @@ class HttpN8nClientTest extends TestCase
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Webhook URL is not valid');
 
-        new HttpN8nClient($this->mockHttpClient, 'invalid-url');
+        new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: 'invalid-url',
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
     }
 
     public function test_constructor_validates_invalid_timeout(): void
@@ -67,7 +83,13 @@ class HttpN8nClientTest extends TestCase
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Timeout must be greater than 0');
 
-        new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 0);
+        new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 0
+        );
     }
 
     public function test_constructor_validates_invalid_retry_attempts(): void
@@ -75,13 +97,25 @@ class HttpN8nClientTest extends TestCase
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Retry attempts must be at least 1');
 
-        new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 30, 0);
+        new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 30,
+            retryAttempts: 0
+        );
     }
 
     public function test_constructor_uses_config_values_when_not_provided(): void
     {
-        config(['services.n8n.webhook_url' => $this->testWebhookUrl]);
-        config(['services.n8n.webhook_secret' => $this->testWebhookSecret]);
+        // Set up all required config values - notice we're using trigger_webhook_url which is what the class looks for
+        config([
+            'services.n8n.trigger_webhook_url' => $this->testWebhookUrl,
+            'services.n8n.auth_header_key' => $this->testAuthHeaderKey,
+            'services.n8n.auth_header_value' => $this->testAuthHeaderValue,
+            'services.n8n.callback_hmac_secret' => 'test-callback-secret',
+        ]);
 
         $client = new HttpN8nClient($this->mockHttpClient);
 
@@ -90,7 +124,12 @@ class HttpN8nClientTest extends TestCase
 
     public function test_get_webhook_url_returns_configured_url(): void
     {
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
 
         $this->assertEquals($this->testWebhookUrl, $client->getWebhookUrl());
     }
@@ -127,7 +166,12 @@ class HttpN8nClientTest extends TestCase
             }))
             ->andReturn(new Response(200, [], json_encode($expectedResponse) ?: '{}'));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->triggerWorkflow($payload);
 
         $this->assertEquals($expectedResponse, $result);
@@ -142,14 +186,14 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->with($this->testWebhookUrl, Mockery::on(function ($options) {
                 $headers = $options['headers'];
-                $this->assertArrayHasKey('X-Webhook-Secret', $headers);
-                $this->assertEquals($this->testWebhookSecret, $headers['X-Webhook-Secret']);
+                $this->assertArrayHasKey($this->testAuthHeaderKey, $headers);
+                $this->assertEquals($this->testAuthHeaderValue, $headers[$this->testAuthHeaderKey]);
 
                 return true;
             }))
             ->andReturn(new Response(200, [], '{}'));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, $this->testWebhookSecret);
+        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, $this->testAuthHeaderKey, $this->testAuthHeaderValue);
         $client->triggerWorkflow($payload);
     }
 
@@ -162,7 +206,12 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->andReturn(new Response(200, [], ''));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->triggerWorkflow($payload);
 
         $this->assertEquals([], $result);
@@ -177,7 +226,12 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->andReturn(new Response(200, [], 'invalid json'));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->triggerWorkflow($payload);
 
         $this->assertEquals([], $result);
@@ -193,7 +247,15 @@ class HttpN8nClientTest extends TestCase
             ->times(3)
             ->andThrow($connectException);
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 30, 3, [0, 0, 0]);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 30,
+            retryAttempts: 3,
+            retryDelays: [0, 0, 0]
+        );
 
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Failed to connect to n8n webhook');
@@ -212,7 +274,15 @@ class HttpN8nClientTest extends TestCase
             ->times(3)
             ->andThrow($requestException);
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 30, 3, [0, 0, 0]);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 30,
+            retryAttempts: 3,
+            retryDelays: [0, 0, 0]
+        );
 
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('N8n webhook returned HTTP 500');
@@ -230,7 +300,15 @@ class HttpN8nClientTest extends TestCase
             ->times(3)
             ->andThrow($requestException);
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 30, 3, [0, 0, 0]);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 30,
+            retryAttempts: 3,
+            retryDelays: [0, 0, 0]
+        );
 
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Request to n8n webhook at');
@@ -248,7 +326,15 @@ class HttpN8nClientTest extends TestCase
             ->times(3)
             ->andThrow($transferException);
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 30, 3, [0, 0, 0]);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 30,
+            retryAttempts: 3,
+            retryDelays: [0, 0, 0]
+        );
 
         $this->expectException(N8nClientException::class);
         $this->expectExceptionMessage('Failed to connect to n8n webhook');
@@ -270,7 +356,15 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->andReturn(new Response(200, [], json_encode($expectedResponse) ?: '{}'));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl, null, 30, 3, [0, 0, 0]);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 30,
+            retryAttempts: 3,
+            retryDelays: [0, 0, 0]
+        );
         $result = $client->triggerWorkflow($payload);
 
         $this->assertEquals($expectedResponse, $result);
@@ -290,7 +384,12 @@ class HttpN8nClientTest extends TestCase
             }))
             ->andReturn(new Response(200));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->isAvailable();
 
         $this->assertTrue($result);
@@ -303,7 +402,12 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->andReturn(new Response(404));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->isAvailable();
 
         $this->assertTrue($result);
@@ -316,7 +420,12 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->andReturn(new Response(500));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->isAvailable();
 
         $this->assertFalse($result);
@@ -329,7 +438,12 @@ class HttpN8nClientTest extends TestCase
             ->once()
             ->andThrow(new TransferException('Connection failed'));
 
-        $client = new HttpN8nClient($this->mockHttpClient, $this->testWebhookUrl);
+        $client = new HttpN8nClient(
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue
+        );
         $result = $client->isAvailable();
 
         $this->assertFalse($result);
@@ -350,12 +464,13 @@ class HttpN8nClientTest extends TestCase
             ->andReturn(new Response(200, [], '{}'));
 
         $client = new HttpN8nClient(
-            $this->mockHttpClient,
-            $this->testWebhookUrl,
-            null,
-            60, // custom timeout
-            1,  // single attempt
-            []
+            httpClient: $this->mockHttpClient,
+            webhookUrl: $this->testWebhookUrl,
+            authHeaderKey: $this->testAuthHeaderKey,
+            authHeaderValue: $this->testAuthHeaderValue,
+            timeout: 60, // custom timeout
+            retryAttempts: 1,  // single attempt
+            retryDelays: [0]
         );
 
         $client->triggerWorkflow($payload);

@@ -1,0 +1,544 @@
+{
+  "info": {
+    "_postman_id": "b1e7e2b2-1234-4cde-9abc-000000000003",
+    "name": "Laravel n8n Ad Script Refactor API",
+    "description": "Postman collection for the Ad Script Refactor API. Demonstrates creating tasks and simulating n8n callbacks.\n\n**Environment Variables Needed:**\n- `base_url`: Root URL for the API (e.g., http://localhost:8000/api)\n- `n8n_callback_hmac_secret`: Shared secret for HMAC signature verification of n8n callbacks.\n\n**Dynamic Variables:**\n- `created_task_id`: Set automatically by the 'Create Ad Script Task (Success)' request's test script. Can be used in subsequent callback requests.\n- `hmac_signature`: Set automatically by pre-request scripts in the 'n8n Callbacks (Simulated)' folder.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Ad Script Tasks",
+      "description": "Endpoints related to managing ad script refactoring tasks.",
+      "item": [
+        {
+          "name": "Create Ad Script Task (Success)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 202 Accepted\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has correct structure\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    pm.expect(jsonData.data).to.have.property('status', 'pending');",
+                  "    pm.expect(jsonData.data).to.have.property('created_at');",
+                  "});",
+                  "",
+                  "pm.test(\"Task ID is a valid UUID and set as env variable\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    const taskId = jsonData.data.id;",
+                  "    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;",
+                  "    pm.expect(taskId).to.match(uuidRegex);",
+                  "    if (taskId) {",
+                  "        pm.environment.set(\"created_task_id\", taskId);",
+                  "        console.log(\"Set environment variable 'created_task_id' to: \" + taskId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reference_script\": \"Our old ad copy: Buy our amazing product now! It's good and affordable. Visit example.com.\",\n    \"outcome_description\": \"Make this ad copy more persuasive, create a sense of urgency, highlight unique benefits, and target young professionals aged 25-35. Desired tone: exciting and modern. Max length: 150 characters.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts"
+              ]
+            },
+            "description": "Creates a new ad script refactoring task. The system will return a 202 Accepted response, and the task will be queued for processing by n8n."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Ad Script Task (Validation Error - Missing Fields)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains validation errors for required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message', 'The given data was invalid.');",
+                  "    pm.expect(jsonData).to.have.property('errors');",
+                  "    pm.expect(jsonData.errors).to.have.property('reference_script');",
+                  "    pm.expect(jsonData.errors).to.have.property('outcome_description');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts"
+              ]
+            },
+            "description": "Demonstrates validation error when required fields (`reference_script`, `outcome_description`) are missing."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Ad Script Task (Validation Error - Min Length)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains validation errors for min length\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.errors).to.have.property('reference_script');",
+                  "    pm.expect(jsonData.errors.reference_script[0]).to.include('must be at least 10 characters');",
+                  "    pm.expect(jsonData.errors).to.have.property('outcome_description');",
+                  "    pm.expect(jsonData.errors.outcome_description[0]).to.include('must be at least 5 characters');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reference_script\": \"short\",\n    \"outcome_description\": \"Short\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts"
+              ]
+            },
+            "description": "Demonstrates validation error for field minimum length constraints."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "n8n Callbacks (Simulated)",
+      "description": "These requests simulate callbacks from n8n. The HMAC signature is generated by a pre-request script.",
+      "item": [
+        {
+          "name": "n8n Callback - Success",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const requestBody = pm.request.body.raw;",
+                  "const secret = pm.environment.get(\"n8n_callback_hmac_secret\");",
+                  "",
+                  "if (!requestBody) {",
+                  "    console.warn(\"Request body is empty. Cannot generate HMAC signature.\");",
+                  "    return;",
+                  "}",
+                  "if (!secret) {",
+                  "    console.error(\"Environment variable 'n8n_callback_hmac_secret' is not set. Cannot generate HMAC signature.\");",
+                  "    return;",
+                  "}",
+                  "",
+                  "const signature = CryptoJS.HmacSHA256(requestBody, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.environment.set(\"hmac_signature\", \"sha256=\" + signature);",
+                  "console.log(\"Generated HMAC Signature: sha256=\" + signature);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response indicates task completed\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('status', 'completed');",
+                  "    pm.expect(jsonData.data).to.have.property('was_updated', true);",
+                  "    pm.expect(jsonData.data).to.have.property('new_script');",
+                  "    pm.expect(jsonData.data).to.have.property('analysis');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-N8N-Signature",
+                "value": "{{hmac_signature}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"new_script\": \"🚀 Skyrocket Your Sales! Our revolutionary product transforms workflows for young pros (25-35). Exciting, modern, and under 150 chars! Act fast! example.com #GameChanger\",\n    \"analysis\": {\n        \"improvements\": [\n            \"Made copy more persuasive and urgent.\",\n            \"Highlighted unique benefits tailored to young professionals.\",\n            \"Infused an exciting and modern tone.\",\n            \"Adhered to 150 character limit.\"\n        ],\n        \"tone\": \"Exciting and Modern\",\n        \"target_audience_match\": \"High (Young Professionals 25-35)\",\n        \"sentiment\": \"Positive\"\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts",
+                "{{created_task_id}}",
+                "result"
+              ]
+            },
+            "description": "Simulates a successful callback from n8n after AI processing. Uses `{{created_task_id}}` from the 'Create Task' request or the `task_id` environment variable."
+          },
+          "response": []
+        },
+        {
+          "name": "n8n Callback - Failure",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const requestBody = pm.request.body.raw;",
+                  "const secret = pm.environment.get(\"n8n_callback_hmac_secret\");",
+                  "if (!requestBody || !secret) return;",
+                  "const signature = CryptoJS.HmacSHA256(requestBody, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.environment.set(\"hmac_signature\", \"sha256=\" + signature);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK (callback received)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response indicates task failed\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('status', 'failed');",
+                  "    pm.expect(jsonData.data).to.have.property('was_updated', true);",
+                  "    pm.expect(jsonData.data).to.have.property('error_details');",
+                  "    pm.expect(jsonData.data.error_details).to.equal(\"AI model processing failed: Input script contained unsupported characters or violated content policy.\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-N8N-Signature",
+                "value": "{{hmac_signature}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"error\": \"AI model processing failed: Input script contained unsupported characters or violated content policy.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts",
+                "{{created_task_id}}",
+                "result"
+              ]
+            },
+            "description": "Simulates a callback from n8n reporting a failure during AI processing."
+          },
+          "response": []
+        },
+        {
+          "name": "n8n Callback - Invalid Signature",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test(\"Response indicates invalid signature\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error', 'Invalid webhook signature');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-N8N-Signature",
+                "value": "sha256=invalid-signature-on-purpose"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"new_script\": \"This won't be processed.\",\n    \"analysis\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts",
+                "{{created_task_id}}",
+                "result"
+              ]
+            },
+            "description": "Simulates an n8n callback with an invalid HMAC signature."
+          },
+          "response": []
+        },
+        {
+          "name": "n8n Callback - Validation Error (e.g., missing new_script and error)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const requestBody = pm.request.body.raw;",
+                  "const secret = pm.environment.get(\"n8n_callback_hmac_secret\");",
+                  "if (!requestBody || !secret) return;",
+                  "const signature = CryptoJS.HmacSHA256(requestBody, secret).toString(CryptoJS.enc.Hex);",
+                  "pm.environment.set(\"hmac_signature\", \"sha256=\" + signature);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 422 Unprocessable Entity\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Response indicates payload validation error\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.errors).to.have.property('payload');",
+                  "    pm.expect(jsonData.errors.payload[0]).to.include('Either new_script or error must be provided');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "X-N8N-Signature",
+                "value": "{{hmac_signature}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"analysis\": { \"some_info\": \"This payload is invalid\" }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "ad-scripts",
+                "{{created_task_id}}",
+                "result"
+              ]
+            },
+            "description": "Simulates an n8n callback with an invalid payload structure that fails Laravel's validation."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    },
+    {
+      "key": "n8n_callback_hmac_secret",
+      "value": "your-n8n-callback-hmac-secret-here",
+      "type": "string",
+      "description": "Shared secret for HMAC signature verification of n8n callbacks. Must match your Laravel .env."
+    },
+    {
+      "key": "created_task_id",
+      "value": "",
+      "type": "string",
+      "description": "Automatically populated by the 'Create Ad Script Task (Success)' request. Used in callback URLs."
+    },
+    {
+      "key": "hmac_signature",
+      "value": "",
+      "type": "string",
+      "description": "Automatically populated by pre-request scripts for callback requests."
+    }
+  ]
+}

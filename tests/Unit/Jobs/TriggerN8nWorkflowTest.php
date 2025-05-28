@@ -119,13 +119,15 @@ class TriggerN8nWorkflowTest extends TestCase
 
         Log::shouldReceive('info')->once();
         Log::shouldReceive('warning')->once();
+        Log::shouldReceive('error')->zeroOrMoreTimes(); // Add error logging expectation
+
+        // Expect the exception to be thrown
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Task cannot be processed in its current state');
 
         // Act
         $job = new TriggerN8nWorkflow($this->task);
         $job->handle($this->service, $this->n8nClient);
-
-        // Assert - expectations are verified by Mockery
-        $this->assertTrue(true);
     }
 
     public function test_handle_throws_exception_when_marking_as_processing_fails(): void

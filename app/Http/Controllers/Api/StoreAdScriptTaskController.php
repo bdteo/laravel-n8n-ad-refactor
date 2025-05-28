@@ -28,43 +28,75 @@ class StoreAdScriptTaskController extends Controller
      */
     public function __invoke(StoreAdScriptTaskRequest $request): JsonResponse
     {
-        // Log API request in audit log
+        $this->logApiRequest($request);
+
+        try {
+            $task = $this->adScriptTaskService->createAndDispatchTask($request->validated());
+            $response = $this->buildSuccessResponse($task);
+            $this->logApiResponse($task, $response);
+
+            return $response;
+        } catch (AdScriptTaskException $e) {
+            return $this->handleTaskException($request, $e, 'Creating and dispatching ad script task failed');
+        } catch (Throwable $e) {
+            return $this->handleTaskException($request, $e, 'Creating ad script task failed');
+        }
+    }
+
+    /**
+     * Log the incoming API request.
+     */
+    private function logApiRequest(StoreAdScriptTaskRequest $request): void
+    {
         $this->auditLogService->logApiRequest('store_ad_script_task', [
             'client_ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'reference_script_length' => strlen($request->input('reference_script')),
-            'outcome_description_length' => strlen($request->input('outcome_description')),
+            'reference_script_length' => is_string($request->input('reference_script')) ? strlen($request->input('reference_script')) : 0,
+            'outcome_description_length' => is_string($request->input('outcome_description')) ? strlen($request->input('outcome_description')) : 0,
         ]);
-        
-        try {
-            $task = $this->adScriptTaskService->createAndDispatchTask($request->validated());
+    }
 
-            $response = $this->acceptedResponse([
-                'id' => $task->id,
-                'status' => $task->status->value,
-                'created_at' => $task->created_at?->toISOString(),
-            ], 'Ad script task created and queued for processing');
-            
-            // Log API response in audit log
-            $this->auditLogService->logApiResponse('store_ad_script_task', $response->getStatusCode(), [
-                'task_id' => $task->id,
-                'status' => $task->status->value,
-            ]);
-            
-            return $response;
+    /**
+     * Build a success response for the created task.
+     *
+     * @param \App\Models\AdScriptTask $task The created task
+     */
+    private function buildSuccessResponse(\App\Models\AdScriptTask $task): JsonResponse
+    {
+        return $this->acceptedResponse([
+            'id' => $task->id,
+            'status' => $task->status->value,
+            'created_at' => $task->created_at?->toISOString(),
+        ], 'Ad script task created and queued for processing');
+    }
 
-        } catch (AdScriptTaskException $e) {
-            $this->auditLogService->logError('Creating and dispatching ad script task failed', $e, [
-                'reference_script_length' => strlen($request->input('reference_script', '')),
-                'outcome_description_length' => strlen($request->input('outcome_description', '')),
-            ]);
-            return $this->handleException($e, 'creating and dispatching ad script task');
-        } catch (Throwable $e) {
-            $this->auditLogService->logError('Creating ad script task failed', $e, [
-                'reference_script_length' => strlen($request->input('reference_script', '')),
-                'outcome_description_length' => strlen($request->input('outcome_description', '')),
-            ]);
-            return $this->handleException($e, 'creating ad script task');
-        }
+    /**
+     * Log the API response.
+     *
+     * @param \App\Models\AdScriptTask $task The created task
+     */
+    private function logApiResponse(\App\Models\AdScriptTask $task, JsonResponse $response): void
+    {
+        $this->auditLogService->logApiResponse('store_ad_script_task', $response->getStatusCode(), [
+            'task_id' => $task->id,
+            'status' => $task->status->value,
+        ]);
+    }
+
+    /**
+     * Handle exceptions for task creation.
+     */
+    private function handleTaskException(StoreAdScriptTaskRequest $request, Throwable $e, string $message): JsonResponse
+    {
+        $this->auditLogService->logError($message, $e, [
+            'reference_script_length' => is_string($request->input('reference_script', '')) ? strlen($request->input('reference_script', '')) : 0,
+            'outcome_description_length' => is_string($request->input('outcome_description', '')) ? strlen($request->input('outcome_description', '')) : 0,
+        ]);
+
+        $contextMessage = $e instanceof AdScriptTaskException
+            ? 'creating and dispatching ad script task'
+            : 'creating ad script task';
+
+        return $this->handleException($e, $contextMessage);
     }
 }

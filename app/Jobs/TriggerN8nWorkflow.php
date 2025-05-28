@@ -50,76 +50,94 @@ class TriggerN8nWorkflow implements ShouldQueue
         N8nClientInterface $n8nClient
     ): void {
         try {
-            Log::info('Starting n8n workflow trigger', [
+            $this->logJobStart($n8nClient);
+            $this->ensureTaskCanBeProcessed($adScriptTaskService);
+            $this->markTaskAsProcessing($adScriptTaskService);
+            $this->triggerN8nAndLog($adScriptTaskService, $n8nClient);
+        } catch (N8nClientException|Exception $e) {
+            $this->handleWorkflowTriggerFailure($adScriptTaskService, $e);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Log the job start information.
+     */
+    private function logJobStart(N8nClientInterface $n8nClient): void
+    {
+        Log::info('Starting n8n workflow trigger', [
+            'task_id' => $this->task->id,
+            'attempt' => $this->attempts(),
+            'webhook_url' => $n8nClient->getWebhookUrl(),
+        ]);
+    }
+
+    /**
+     * Ensure the task can be processed.
+     */
+    private function ensureTaskCanBeProcessed(AdScriptTaskService $service): void
+    {
+        if (! $service->canProcess($this->task)) {
+            Log::warning('Task cannot be processed, skipping', [
                 'task_id' => $this->task->id,
-                'attempt' => $this->attempts(),
-                'webhook_url' => $n8nClient->getWebhookUrl(),
+                'status' => $this->task->status->value,
             ]);
 
-            // Check if task can still be processed
-            if (! $adScriptTaskService->canProcess($this->task)) {
-                Log::warning('Task cannot be processed, skipping', [
-                    'task_id' => $this->task->id,
-                    'status' => $this->task->status->value,
-                ]);
+            throw new Exception('Task cannot be processed in its current state');
+        }
+    }
 
-                return;
-            }
-
-            // Mark task as processing
-            if (! $adScriptTaskService->markAsProcessing($this->task)) {
-                Log::error('Failed to mark task as processing', [
-                    'task_id' => $this->task->id,
-                ]);
-
-                throw new Exception('Failed to mark task as processing');
-            }
-
-            // Create webhook payload
-            $payload = $adScriptTaskService->createWebhookPayload($this->task);
-
-            // Trigger the workflow using the n8n client
-            $response = $n8nClient->triggerWorkflow($payload);
-
-            Log::info('Successfully triggered n8n workflow', [
+    /**
+     * Mark the task as processing.
+     */
+    private function markTaskAsProcessing(AdScriptTaskService $service): void
+    {
+        if (! $service->markAsProcessing($this->task)) {
+            Log::error('Failed to mark task as processing', [
                 'task_id' => $this->task->id,
-                'response' => $response,
             ]);
 
-        } catch (N8nClientException $exception) {
-            Log::error('N8n client error while triggering workflow', [
-                'task_id' => $this->task->id,
-                'attempt' => $this->attempts(),
-                'error' => $exception->getMessage(),
-            ]);
+            throw new Exception('Failed to mark task as processing');
+        }
+    }
 
-            // If this is the final attempt, mark task as failed
-            if ($this->attempts() >= $this->tries) {
-                $adScriptTaskService->markAsFailed(
-                    $this->task,
-                    "Failed to trigger n8n workflow after {$this->tries} attempts: {$exception->getMessage()}"
-                );
-            }
+    /**
+     * Trigger the n8n workflow and log the result.
+     */
+    private function triggerN8nAndLog(AdScriptTaskService $service, N8nClientInterface $client): void
+    {
+        $payload = $service->createWebhookPayload($this->task);
+        $response = $client->triggerWorkflow($payload);
 
-            throw $exception;
+        Log::info('Successfully triggered n8n workflow', [
+            'task_id' => $this->task->id,
+            'response' => $response,
+        ]);
+    }
 
-        } catch (Exception $exception) {
-            Log::error('Unexpected error while triggering n8n workflow', [
-                'task_id' => $this->task->id,
-                'attempt' => $this->attempts(),
-                'error' => $exception->getMessage(),
-                'trace' => $exception->getTraceAsString(),
-            ]);
+    /**
+     * Handle workflow trigger failure.
+     */
+    private function handleWorkflowTriggerFailure(AdScriptTaskService $service, Exception $exception): void
+    {
+        $isN8nClientError = $exception instanceof N8nClientException;
+        $logMessage = $isN8nClientError
+            ? 'N8n client error while triggering workflow'
+            : 'Unexpected error while triggering workflow';
 
-            // If this is the final attempt, mark task as failed
-            if ($this->attempts() >= $this->tries) {
-                $adScriptTaskService->markAsFailed(
-                    $this->task,
-                    "Failed to trigger n8n workflow after {$this->tries} attempts: {$exception->getMessage()}"
-                );
-            }
+        Log::error($logMessage, [
+            'task_id' => $this->task->id,
+            'attempt' => $this->attempts(),
+            'error' => $exception->getMessage(),
+            'trace' => $isN8nClientError ? null : $exception->getTraceAsString(),
+        ]);
 
-            throw $exception;
+        if ($this->attempts() >= $this->tries) {
+            $service->markAsFailed(
+                $this->task,
+                "Failed to trigger n8n workflow after {$this->tries} attempts: {$exception->getMessage()}"
+            );
         }
     }
 

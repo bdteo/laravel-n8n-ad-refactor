@@ -649,7 +649,7 @@
         4,
         5
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": []
     },
     {
@@ -662,7 +662,7 @@
       "dependencies": [
         33
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": []
     },
     {

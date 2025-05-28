@@ -29,6 +29,15 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
 # Install Redis extension
 RUN pecl install redis && docker-php-ext-enable redis
 
+# Install Xdebug for code coverage
+RUN pecl install xdebug && docker-php-ext-enable xdebug
+
+# Create directory for Xdebug logs and coverage output
+RUN mkdir -p /var/log /var/www/coverage \
+    && touch /var/log/xdebug.log \
+    && chmod 666 /var/log/xdebug.log \
+    && chmod 777 /var/www/coverage
+
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
@@ -48,4 +57,4 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
-CMD ["php-fpm"] 
+CMD ["php-fpm"]

@@ -8,6 +8,6 @@ echo "Running PHP CS Fixer..."
 echo "Running PHPStan analysis..."
 ./vendor/bin/phpstan analyse --memory-limit=2G
 
-# Run tests
-echo "Running tests..."
-./vendor/bin/pest
+# Run tests using make command for consistent testing environment
+echo "Running tests using 'make test'..."
+make test

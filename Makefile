@@ -81,9 +81,8 @@ optimize: ## Optimize Laravel for production
 # Testing
 test-setup: ## Setup test environment
 	# Clear config cache to ensure fresh configuration
-	docker compose exec app php artisan config:clear
-	# Ensure test database exists and is migrated
-	docker compose exec app php artisan migrate:fresh --seed --env=testing
+	docker compose exec -T app php artisan config:clear
+	# No need to run migrations for SQLite :memory: database as it will be created fresh for each test
 
 # Standalone test execution without Docker
 test-local: ## Run tests locally without Docker
@@ -91,11 +90,11 @@ test-local: ## Run tests locally without Docker
 
 # Docker-based testing
 test: test-setup ## Run tests in Docker
-	# Create test database and run tests using MySQL
-	docker compose exec app bash -c "php artisan config:clear && XDEBUG_MODE=off ./vendor/bin/pest"
+	# Run tests using SQLite for faster execution
+	docker compose exec -T app bash -c "php artisan config:clear && DB_CONNECTION=sqlite DB_DATABASE=:memory: XDEBUG_MODE=off ./vendor/bin/pest"
 
 test-coverage: test-setup ## Run tests with coverage
-	docker compose exec app bash -c "php artisan config:clear && XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-html coverage"
+	docker compose exec -T app bash -c "php artisan config:clear && DB_CONNECTION=sqlite DB_DATABASE=:memory: XDEBUG_MODE=coverage ./vendor/bin/pest --coverage-html coverage"
 	@echo "✅ Coverage report generated in the coverage/ directory"
 	@echo "📊 Open coverage/index.html in your browser to view the report"
 	
@@ -152,4 +151,4 @@ api-test: ## Run API tests with Newman (local environment)
 	yarn test:api
 
 api-test-ci: ## Run API tests with Newman (CI environment)
-	yarn test:api:ci 
+	yarn test:api:ci

@@ -1,5 +1,4 @@
 # Laravel n8n AI Ad Script Refactoring System
-# Laravel n8n AI Ad Script Refactoring System
 
 ## Project Overview
 

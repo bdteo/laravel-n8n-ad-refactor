@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+
+# Run PHP CS Fixer check
+echo "Running PHP CS Fixer..."
+./vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
+
+# Run PHPStan analysis
+echo "Running PHPStan analysis..."
+./vendor/bin/phpstan analyse --memory-limit=2G
+
+# Run tests
+echo "Running tests..."
+./vendor/bin/pest

@@ -1,0 +1,40 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    level: max
+    paths:
+        - app/
+        - config/
+        - database/
+        - routes/
+        - tests/
+    
+    # Ignore Laravel's magic methods and properties
+    ignoreErrors:
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder#'
+        - '#Call to an undefined method Illuminate\\Database\\Query\\Builder#'
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model#'
+        - '#Parameter \#1 \$title of static method Illuminate\\Support\\Str::slug\(\) expects string, bool\|string given\.#'
+        - '#Parameter \#2 \$string of function explode expects string, bool\|string given\.#'
+        - '#Undefined variable: \$this#'
+        - '#Function something\(\) has no return type specified\.#'
+        # Mockery-specific ignores
+        - '#Call to an undefined method Mockery\\ExpectationInterface\|Mockery\\HigherOrderMessage::(once|twice|times|andReturn|andThrow|with|shouldReceive|shouldNotReceive)\(\)#'
+        - '#Call to an undefined method .*&Mockery\\MockInterface::(shouldReceive|shouldNotReceive)\(\)#'
+        -
+            identifier: missingType.iterableValue
+        -
+            identifier: missingType.generics
+    
+    # Laravel specific configurations
+    reportUnmatchedIgnoredErrors: false
+    checkOctaneCompatibility: true
+    
+    # Exclude certain files/patterns
+    excludePaths:
+        - bootstrap/cache/*
+        - storage/*
+        - vendor/*
+        - node_modules/* 

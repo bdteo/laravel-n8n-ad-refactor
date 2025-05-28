@@ -1,0 +1,401 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: app/Exceptions/Handler.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: app/Http/Controllers/Api/ProcessAdScriptResultController.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: app/Http/Controllers/Api/StoreAdScriptTaskController.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$analysis\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$error_details\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$id\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$new_script\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$outcome_description\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$reference_script\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$status\\.$#"
+			count: 3
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Call to an undefined method App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:refresh\\(\\)\\.$#"
+			count: 2
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Call to an undefined static method Illuminate\\\\Support\\\\Facades\\\\Log\\:\\:shouldHaveReceived\\(\\)\\.$#"
+			count: 2
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Cannot access property \\$id on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 2
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Cannot access property \\$new_script on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Cannot access property \\$status on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 3
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Cannot call method refresh\\(\\) on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 3
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Offset 'metadata' does not exist on array\\|null\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Offset 'power_words' does not exist on array\\|null\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Offset 'sentiment_analysis' does not exist on array\\|null\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$task of class App\\\\Jobs\\\\TriggerN8nWorkflow constructor expects App\\\\Models\\\\AdScriptTask, App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\> given\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$task of class App\\\\Jobs\\\\TriggerN8nWorkflow constructor expects App\\\\Models\\\\AdScriptTask, App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null given\\.$#"
+			count: 3
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$n8nClient of method App\\\\Jobs\\\\TriggerN8nWorkflow\\:\\:handle\\(\\) expects App\\\\Contracts\\\\N8nClientInterface, Mockery\\\\MockInterface given\\.$#"
+			count: 8
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Part \\$taskId \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 2
+			path: tests/Feature/AdScriptIntegrationTest.php
+
+		-
+			message: "#^Call to an undefined static method Illuminate\\\\Support\\\\Facades\\\\Log\\:\\:shouldHaveReceived\\(\\)\\.$#"
+			count: 4
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot access property \\$analysis on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 10
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot access property \\$error_details on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot access property \\$new_script on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 5
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot access property \\$status on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 3
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot call method refresh\\(\\) on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 4
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot call method update\\(\\) on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 4
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Method Illuminate\\\\Testing\\\\TestResponse\\:\\:assertStatus\\(\\) invoked with 2 parameters, 1 required\\.$#"
+			count: 3
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of function strlen expects string, string\\|null given\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$haystack of method PHPUnit\\\\Framework\\\\Assert\\:\\:assertStringContainsString\\(\\) expects string, string\\|null given\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Parameter \\#3 \\$key of function hash_hmac expects string, mixed given\\.$#"
+			count: 1
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Part \\$taskId \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 4
+			path: tests/Feature/AdScriptWorkflowTest.php
+
+		-
+			message: "#^Cannot access offset 'message' on mixed\\.$#"
+			count: 1
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Cannot access property \\$reference_script on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
+			count: 1
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Comparison operation \"\\<\" between int\\<0, 9\\> and 10 is always true\\.$#"
+			count: 1
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Method Illuminate\\\\Testing\\\\TestResponse\\:\\:assertStatus\\(\\) invoked with 2 parameters, 1 required\\.$#"
+			count: 10
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
+			count: 1
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$data of function hash_hmac expects string, string\\|false given\\.$#"
+			count: 3
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$haystack of method PHPUnit\\\\Framework\\\\Assert\\:\\:assertStringNotContainsString\\(\\) expects string, string\\|false given\\.$#"
+			count: 1
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Parameter \\#3 \\$key of function hash_hmac expects string, mixed given\\.$#"
+			count: 3
+			path: tests/Feature/ApiSecurityAndLimitsTest.php
+
+		-
+			message: "#^Call to an undefined static method Illuminate\\\\Support\\\\Facades\\\\Log\\:\\:shouldHaveReceived\\(\\)\\.$#"
+			count: 3
+			path: tests/Feature/LaravelN8nIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$data of function hash_hmac expects string, string\\|false given\\.$#"
+			count: 2
+			path: tests/Feature/LaravelN8nIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$haystack of method PHPUnit\\\\Framework\\\\Assert\\:\\:assertStringContainsString\\(\\) expects string, string\\|null given\\.$#"
+			count: 1
+			path: tests/Feature/LaravelN8nIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$n8nClient of method App\\\\Jobs\\\\TriggerN8nWorkflow\\:\\:handle\\(\\) expects App\\\\Contracts\\\\N8nClientInterface, Mockery\\\\MockInterface given\\.$#"
+			count: 6
+			path: tests/Feature/LaravelN8nIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#3 \\$body of class GuzzleHttp\\\\Psr7\\\\Response constructor expects Psr\\\\Http\\\\Message\\\\StreamInterface\\|resource\\|string\\|null, string\\|false given\\.$#"
+			count: 11
+			path: tests/Feature/LaravelN8nIntegrationTest.php
+
+		-
+			message: "#^Parameter \\#3 \\$key of function hash_hmac expects string, mixed given\\.$#"
+			count: 1
+			path: tests/Feature/LaravelN8nIntegrationTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:acceptedResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:createdResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:handleException\\(\\)\\.$#"
+			count: 7
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:notFoundResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:serverErrorResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:serviceErrorResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:successResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Call to an undefined method object\\:\\:validationErrorResponse\\(\\)\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'data' on mixed\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'error' on mixed\\.$#"
+			count: 11
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'errors' on mixed\\.$#"
+			count: 2
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'message' on mixed\\.$#"
+			count: 5
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'retry_after' on mixed\\.$#"
+			count: 2
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'service' on mixed\\.$#"
+			count: 3
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access offset 'type' on mixed\\.$#"
+			count: 10
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Parameter \\#2 \\$array of method PHPUnit\\\\Framework\\\\Assert\\:\\:assertArrayHasKey\\(\\) expects array\\|ArrayAccess, mixed given\\.$#"
+			count: 1
+			path: tests/Feature/Traits/HandlesApiErrorsTest.php
+
+		-
+			message: "#^Cannot access property \\$analysis on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 2
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot access property \\$error_details on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 3
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot access property \\$new_script on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 3
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot access property \\$status on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 12
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot call method fresh\\(\\) on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 2
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot call method markAsCompleted\\(\\) on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 1
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot call method markAsFailed\\(\\) on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 1
+			path: tests/Unit/AdScriptTaskTest.php
+
+		-
+			message: "#^Cannot access property \\$analysis on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 3
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php
+
+		-
+			message: "#^Cannot access property \\$error_details on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 3
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php
+
+		-
+			message: "#^Cannot access property \\$new_script on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 3
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php
+
+		-
+			message: "#^Cannot access property \\$status on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 10
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php
+
+		-
+			message: "#^Cannot call method fresh\\(\\) on App\\\\Models\\\\AdScriptTask\\|null\\.$#"
+			count: 2
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$task of method App\\\\Services\\\\AdScriptTaskService\\:\\:processErrorResult\\(\\) expects App\\\\Models\\\\AdScriptTask, App\\\\Models\\\\AdScriptTask\\|null given\\.$#"
+			count: 1
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php
+
+		-
+			message: "#^Parameter \\#1 \\$task of method App\\\\Services\\\\AdScriptTaskService\\:\\:processSuccessResult\\(\\) expects App\\\\Models\\\\AdScriptTask, App\\\\Models\\\\AdScriptTask\\|null given\\.$#"
+			count: 1
+			path: tests/Unit/Services/AdScriptTaskServiceTest.php

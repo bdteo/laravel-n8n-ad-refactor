@@ -1,0 +1,702 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Setup Laravel Project with API Preset",
+      "description": "Initialize a new Laravel 10+ project with API preset and Pest testing framework.",
+      "details": "Use Composer to create a new Laravel 10+ project with API preset. Install Pest testing framework. Ensure PHP 8.1+ is used. Command: `composer create-project laravel/laravel:^10.0 laravel-n8n-ad-refactor --prefer-dist && cd laravel-n8n-ad-refactor && composer require pestphp/pest --dev --with-all-dependencies`",
+      "testStrategy": "Verify Laravel installation by running `php artisan --version` and `./vendor/bin/pest --version`",
+      "priority": "high",
+      "dependencies": [],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 2,
+      "title": "Configure Docker Environment",
+      "description": "Set up a Docker Compose environment for local development.",
+      "details": "Create a docker-compose.yml file with services for php-app, mysql, n8n, and redis. Use official images: php:8.1-fpm, mysql:8.0, n8nio/n8n:latest, and redis:alpine. Ensure proper networking and volume mapping.",
+      "testStrategy": "Run `docker-compose up -d` and verify all containers are running with `docker-compose ps`",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 4,
+      "title": "Configure Quality Tools",
+      "description": "Set up PHP CS Fixer, PHPStan, and Husky for code quality checks.",
+      "status": "done",
+      "dependencies": [
+        1
+      ],
+      "priority": "high",
+      "details": "Install and configure PHP CS Fixer, PHPStan (via Larastan), Husky git hooks, and Conventional Commits for comprehensive code quality enforcement. Create all necessary configuration files and add composer scripts for easy execution of quality checks.",
+      "testStrategy": "Verify all tools work correctly by running the composer scripts: `composer cs-check`, `composer analyse`, `composer test`, and `composer quality`. Also test the pre-commit hook by making a commit with code style issues to ensure it blocks the commit.",
+      "subtasks": [
+        {
+          "id": 4.1,
+          "title": "PHP CS Fixer Configuration",
+          "description": "Installed friendsofphp/php-cs-fixer v3.75 and created configuration file with PSR-12 standards.",
+          "status": "completed",
+          "details": "Created `.php-cs-fixer.dist.php` with PSR-12 standards and 80-char line limit. Configured to scan app/, config/, database/, routes/, tests/ directories. Added rules for array syntax, import ordering, trailing commas, etc. Added composer scripts: `cs-fix` and `cs-check`. Tested and fixed existing code formatting issues."
+        },
+        {
+          "id": 4.2,
+          "title": "PHPStan/Larastan Configuration",
+          "description": "Installed larastan/larastan v2.11 and created phpstan.neon with maximum level analysis.",
+          "status": "completed",
+          "details": "Installed `larastan/larastan` v2.11 (replaced deprecated nunomaduro/larastan). Created `phpstan.neon` with maximum level analysis. Configured Laravel-specific ignores for magic methods and properties. Added proper ignores for deprecated config options. Added composer script: `analyse` with 1G memory limit. Tested and achieved zero errors."
+        },
+        {
+          "id": 4.3,
+          "title": "Husky Git Hooks Setup",
+          "description": "Installed husky v9.1.7 and configured pre-commit hook for quality checks.",
+          "status": "completed",
+          "details": "Installed `husky` v9.1.7 using modern `npx husky init`. Created `.husky/pre-commit` hook that runs PHP CS Fixer check (--dry-run --diff --verbose), PHPStan analysis (--memory-limit=1G), and Pest tests. Made hook executable with proper permissions."
+        },
+        {
+          "id": 4.4,
+          "title": "Conventional Commits Configuration",
+          "description": "Installed and configured commitizen for standardized commit messages.",
+          "status": "completed",
+          "details": "Installed `commitizen` and `cz-conventional-changelog`. Configured Commitizen in package.json. Added `npm run commit` script for guided conventional commits."
+        },
+        {
+          "id": 4.5,
+          "title": "Composer Scripts Setup",
+          "description": "Added comprehensive composer scripts for quality checks and testing.",
+          "status": "completed",
+          "details": "Added comprehensive composer scripts: `test`: Run Pest tests, `test-coverage`: Generate coverage reports (XML + HTML), `cs-fix`: Auto-fix code style issues, `cs-check`: Check code style without fixing, `analyse`: Run PHPStan analysis, `quality`: Combined script running all checks."
+        },
+        {
+          "id": 4.6,
+          "title": "Configuration Files Updates",
+          "description": "Updated .gitignore and ensured all configuration files follow best practices.",
+          "status": "completed",
+          "details": "Updated `.gitignore` to exclude tool caches and coverage reports. All configuration files follow best practices and project standards."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Implement Conventional Commits",
+      "description": "Set up and enforce conventional commit messages.",
+      "details": "Install Commitizen CLI tool. Create a .czrc file for configuration. Add a commit-msg hook in Husky to validate commit messages. Command: `npm install -g commitizen && npm init cz-conventional-changelog`",
+      "testStrategy": "Attempt to make a commit with an invalid message format and verify that it's rejected",
+      "priority": "medium",
+      "dependencies": [
+        4
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 6,
+      "title": "Create AdScriptTask Model and Migration",
+      "description": "Implement the AdScriptTask model and corresponding database migration.",
+      "details": "Create model: `php artisan make:model AdScriptTask -m`. Define fields: id (UUID), reference_script, outcome_description, new_script, analysis, status, error_details, timestamps. Use $casts for JSON and enum fields. Implement UUID trait.",
+      "testStrategy": "Write a unit test for the model and run the migration to verify the table structure",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 7,
+      "title": "Implement TaskStatus Enum",
+      "description": "Create an enum for task statuses (pending, processing, completed, failed).",
+      "details": "Create app/Enums/TaskStatus.php. Define enum cases for pending, processing, completed, and failed. Implement __toString() method for database storage.",
+      "testStrategy": "Write unit tests to ensure enum values are correctly defined and can be cast to string",
+      "priority": "medium",
+      "dependencies": [
+        6
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 8,
+      "title": "Create Data Transfer Objects (DTOs)",
+      "description": "Implement DTOs for N8nWebhookPayload and N8nResultPayload.",
+      "details": "Create app/DTOs directory. Implement N8nWebhookPayload with taskId, referenceScript, outcomeDescription. Implement N8nResultPayload with newScript, analysis, optional error. Use PHP 8.1 readonly properties.",
+      "testStrategy": "Write unit tests for each DTO, ensuring proper instantiation and data access",
+      "priority": "medium",
+      "dependencies": [
+        6,
+        7
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 9,
+      "title": "Optimize Database Schema",
+      "description": "Add proper indexing to the ad_script_tasks table.",
+      "details": "Modify the migration to add indexes on status and created_at columns. Consider adding a composite index if querying by both fields is common.",
+      "testStrategy": "Use Laravel's schema:dump command to verify indexes. Write a test to ensure queries use the indexes.",
+      "priority": "medium",
+      "dependencies": [
+        6
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 10,
+      "title": "Implement Ad Script Submission API Endpoint",
+      "description": "Create the POST /api/ad-scripts endpoint for submitting new ad scripts.",
+      "status": "done",
+      "dependencies": [
+        6,
+        7,
+        8
+      ],
+      "priority": "high",
+      "details": "The endpoint has been implemented with a dedicated invokable controller (StoreAdScriptTaskController) and service layer (AdScriptTaskService) for business logic separation. Validation is handled through StoreAdScriptTaskRequest with comprehensive rules for reference_script and outcome_description fields. The endpoint returns a 202 Accepted status with task ID, status, and timestamp.",
+      "testStrategy": "Comprehensive feature tests have been implemented covering successful submission, all validation scenarios (required fields, min/max lengths, type validation), UUID generation verification, timestamp format validation, and database persistence verification.",
+      "subtasks": [
+        {
+          "id": 10.1,
+          "title": "Create StoreAdScriptTaskRequest form request with validation rules",
+          "status": "completed",
+          "details": "Implemented validation rules for reference_script (required, string, min:10, max:10000) and outcome_description (required, string, min:5, max:1000) with custom error messages."
+        },
+        {
+          "id": 10.2,
+          "title": "Implement StoreAdScriptTaskController as invokable controller",
+          "status": "completed",
+          "details": "Created an invokable controller following single responsibility principle with dependency injection and proper response format."
+        },
+        {
+          "id": 10.3,
+          "title": "Create AdScriptTaskService for business logic",
+          "status": "completed",
+          "details": "Implemented service layer with createTask() method to handle task creation, separating business logic from controller."
+        },
+        {
+          "id": 10.4,
+          "title": "Add POST /api/ad-scripts route to API routes",
+          "status": "completed",
+          "details": "Added route to routes/api.php pointing to the invokable controller."
+        },
+        {
+          "id": 10.5,
+          "title": "Implement feature tests for endpoint",
+          "status": "completed",
+          "details": "Created 9 comprehensive tests covering successful creation, validation scenarios, UUID generation, timestamp format, and database persistence."
+        },
+        {
+          "id": 10.6,
+          "title": "Ensure code quality standards",
+          "status": "completed",
+          "details": "Verified code passes PHP CS Fixer and PHPStan (level max). Implemented strict types, readonly properties, proper error handling, and followed Laravel best practices."
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Implement Request Validation",
+      "description": "Create a form request for validating ad script submission.",
+      "details": "Create app/Http/Requests/StoreAdScriptRequest.php. Define rules for reference_script and outcome_description. Implement custom error messages if needed.",
+      "testStrategy": "Write unit tests for the form request, covering both valid and invalid scenarios",
+      "priority": "high",
+      "dependencies": [
+        10
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 12,
+      "title": "Create AdScriptTaskService",
+      "description": "Implement a service class for handling ad script task business logic.",
+      "details": "Create app/Services/AdScriptTaskService.php. Implement methods for creating tasks, updating status, and processing results. Use dependency injection for the AdScriptTask model.",
+      "testStrategy": "Write unit tests for each method in the service, mocking the model interactions",
+      "priority": "high",
+      "dependencies": [
+        6,
+        7,
+        8
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 13,
+      "title": "Implement TriggerN8nWorkflow Job",
+      "description": "Create a job to trigger the n8n workflow asynchronously.",
+      "details": "Use `php artisan make:job TriggerN8nWorkflow`. Implement handle() method to call n8n API. Add retry logic with 3 attempts and backoff of [10, 30, 60] seconds. Use Laravel's retry() helper.",
+      "testStrategy": "Write unit tests mocking the N8nClient. Test successful execution and retry scenarios.",
+      "priority": "high",
+      "dependencies": [
+        12
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 14,
+      "title": "Create N8nClientInterface and Implementation",
+      "description": "Define an interface for n8n communication and implement an HTTP client.",
+      "details": "Create app/Contracts/N8nClientInterface.php and app/Services/HttpN8nClient.php. Use Guzzle for HTTP requests. Implement methods for triggering workflows and handling responses.",
+      "testStrategy": "Write unit tests for the HTTP client, mocking Guzzle responses. Test both successful and error scenarios.",
+      "priority": "high",
+      "dependencies": [
+        13
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 15,
+      "title": "Configure n8n Webhook Trigger",
+      "description": "Set up the webhook trigger in n8n with proper authentication.",
+      "details": "In n8n, create a new workflow with an HTTP Webhook trigger. Configure authentication using the HMAC-SHA256 method. Use the N8N_WEBHOOK_SECRET env variable for the secret key.",
+      "testStrategy": "Manually test the webhook using a tool like Postman, verifying that authenticated requests are accepted and others are rejected",
+      "priority": "high",
+      "dependencies": [
+        2,
+        14
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 16,
+      "title": "Implement AI Agent Configuration in n8n",
+      "description": "Configure the GPT-4o AI agent within the n8n workflow.",
+      "details": "Add an OpenAI node to the n8n workflow. Configure it to use GPT-4o. Set up proper input mapping from the webhook data. Ensure the AI's response is structured as per the N8nResultPayload DTO.",
+      "testStrategy": "Create a test workflow in n8n and verify AI responses match the expected format",
+      "priority": "high",
+      "dependencies": [
+        15
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 17,
+      "title": "Implement Error Handling in n8n Workflow",
+      "description": "Add error handling and callback logic to the n8n workflow.",
+      "details": "Implement error catching in the n8n workflow. For each potential error point, add an Error trigger node. Ensure all error branches lead to a properly formatted error callback to Laravel.",
+      "testStrategy": "Intentionally cause errors in the workflow (e.g., invalid API keys) and verify that error callbacks are received by Laravel",
+      "priority": "high",
+      "dependencies": [
+        16
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 18,
+      "title": "Create n8n Workflow Documentation",
+      "description": "Export and document the n8n workflow for version control.",
+      "details": "Export the n8n workflow as JSON. Store it in the project repository under a 'workflows' directory. Create a markdown file explaining the workflow structure and configuration requirements.",
+      "testStrategy": "Review the exported JSON and documentation for completeness. Attempt to import the workflow into a fresh n8n instance.",
+      "priority": "medium",
+      "dependencies": [
+        15,
+        16,
+        17
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 19,
+      "title": "Implement Result Processing API Endpoint",
+      "description": "Create the POST /api/ad-scripts/{task}/result endpoint for n8n callbacks.",
+      "details": "Add a new method to AdScriptController for processing results. Use route model binding for the task. Validate input using a form request. Update task status and store results using AdScriptTaskService.",
+      "testStrategy": "Write feature tests covering successful result processing, error scenarios, and idempotency",
+      "priority": "high",
+      "dependencies": [
+        10,
+        12
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 20,
+      "title": "Implement Webhook Signature Verification Middleware",
+      "description": "Create middleware to verify n8n webhook signatures for authentication.",
+      "details": "Create app/Http/Middleware/VerifyWebhookSignature.php. Implement logic to verify HMAC-SHA256 signatures using the N8N_WEBHOOK_SECRET. Register the middleware in the kernel.",
+      "testStrategy": "Write unit tests for the middleware, covering both valid and invalid signatures",
+      "priority": "high",
+      "dependencies": [
+        19
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 21,
+      "title": "Implement Task Update Logic with Idempotency",
+      "description": "Ensure task updates can handle duplicate callbacks gracefully.",
+      "details": "Modify AdScriptTaskService to handle potential duplicate updates. Use database transactions and conditional updates based on current status to ensure idempotency.",
+      "testStrategy": "Write unit tests simulating duplicate callbacks and verify that the task state remains consistent",
+      "priority": "high",
+      "dependencies": [
+        12,
+        19
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 22,
+      "title": "Implement Comprehensive Error Handling and Logging",
+      "description": "Set up proper error handling and logging throughout the application.",
+      "details": "Use Laravel's exception handling mechanism. Create custom exceptions where necessary. Implement proper logging using Laravel's Log facade. Ensure no sensitive data is exposed in error responses.",
+      "testStrategy": "Write tests that trigger various error conditions and verify proper logging and client-safe responses",
+      "priority": "high",
+      "dependencies": [
+        10,
+        13,
+        19
+      ],
+      "status": "done",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Create Custom Exception Classes",
+          "description": "Create additional custom exception classes for different error scenarios (validation, business logic, external service failures)",
+          "details": "Create exceptions like AdScriptTaskException, ValidationException, ExternalServiceException to provide better error categorization",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 22
+        },
+        {
+          "id": 2,
+          "title": "Enhance Exception Handler",
+          "description": "Improve the Laravel exception handler with proper error response formatting, logging, and sensitive data filtering",
+          "details": "Implement render() method for API error responses, enhance reportable() for better logging, add sensitive data filtering",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 22
+        },
+        {
+          "id": 3,
+          "title": "Add Controller Error Handling",
+          "description": "Add comprehensive error handling to controllers that currently lack proper exception handling",
+          "details": "Wrap controller logic in try-catch blocks, handle specific exceptions appropriately, ensure proper HTTP status codes",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 22
+        },
+        {
+          "id": 4,
+          "title": "Enhance Logging Configuration",
+          "description": "Improve logging configuration with structured channels for different error types and contexts",
+          "details": "Add dedicated channels for API errors, N8n communication, job failures, and security events",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 22
+        },
+        {
+          "id": 5,
+          "title": "Implement Error Response Traits",
+          "description": "Create reusable traits for consistent error response formatting across controllers",
+          "details": "Create traits that provide standardized error response methods with proper HTTP status codes and message formatting",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 22
+        },
+        {
+          "id": 6,
+          "title": "Add Comprehensive Tests",
+          "description": "Create tests for all error handling scenarios to ensure proper behavior",
+          "details": "Test exception handling, error responses, logging behavior, and edge cases",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 22
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "title": "Implement Unit Tests for Models",
+      "description": "Create comprehensive unit tests for the AdScriptTask model.",
+      "details": "Use Pest to write tests covering all model attributes, relationships, and any custom methods. Test UUID generation, enum casting, and JSON serialization/deserialization.",
+      "testStrategy": "Aim for 100% code coverage of the model. Use Laravel's model factories for test data generation.",
+      "priority": "high",
+      "dependencies": [
+        6,
+        7
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 24,
+      "title": "Implement Unit Tests for Services",
+      "description": "Create unit tests for all service classes, including AdScriptTaskService.",
+      "details": "Write Pest tests for each method in the services. Use mocking to isolate the service logic from external dependencies. Test both success and failure scenarios.",
+      "testStrategy": "Aim for 100% code coverage. Use data providers to test multiple scenarios efficiently.",
+      "priority": "high",
+      "dependencies": [
+        12,
+        14
+      ],
+      "status": "done",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Analysis and Verification of Existing Service Tests",
+          "description": "Comprehensive analysis of existing unit tests for AdScriptTaskService and HttpN8nClient",
+          "details": "Verified that comprehensive unit tests already exist for both service classes with excellent coverage of all methods, error conditions, and edge cases.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 24
+        },
+        {
+          "id": 2,
+          "title": "Code Coverage Analysis with Xdebug",
+          "description": "Generated comprehensive code coverage reports using Xdebug for service unit tests",
+          "details": "Generated HTML and XML coverage reports. Services achieved 100% line coverage (212/212 lines), 100% method coverage (21/21 methods), and 100% class coverage (2/2 classes). Both AdScriptTaskService and HttpN8nClient have perfect coverage.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 24
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "title": "Implement Unit Tests for Jobs",
+      "description": "Create unit tests for the TriggerN8nWorkflow job.",
+      "details": "Write Pest tests covering job execution, retry logic, and error handling. Mock the N8nClient to simulate various response scenarios.",
+      "testStrategy": "Test successful execution, all retry scenarios, and final failure. Verify that the job updates the task status correctly.",
+      "priority": "high",
+      "dependencies": [
+        13
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 26,
+      "title": "Implement Unit Tests for DTOs",
+      "description": "Create unit tests for all Data Transfer Objects.",
+      "details": "Write Pest tests for N8nWebhookPayload and N8nResultPayload DTOs. Test object creation, property access, and any custom methods.",
+      "testStrategy": "Ensure 100% coverage. Test with various input data, including edge cases.",
+      "priority": "medium",
+      "dependencies": [
+        8
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 27,
+      "title": "Implement Unit Tests for Middleware",
+      "description": "Create unit tests for custom middleware, including webhook signature verification.",
+      "details": "Write Pest tests for the VerifyWebhookSignature middleware. Test both valid and invalid signature scenarios.",
+      "testStrategy": "Mock the request and response. Test with various signature inputs, including malformed signatures.",
+      "priority": "high",
+      "dependencies": [
+        20
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 28,
+      "title": "Implement Feature Tests for API Flows",
+      "description": "Create end-to-end tests for the main API workflows.",
+      "details": "Write Pest feature tests covering the entire flow from ad script submission to result processing. Use Laravel's HTTP testing methods.",
+      "testStrategy": "Test the happy path and various error scenarios. Mock external services like n8n where necessary.",
+      "priority": "high",
+      "dependencies": [
+        10,
+        19
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 29,
+      "title": "Implement Integration Tests",
+      "description": "Create integration tests for Laravel-n8n communication.",
+      "details": "Write tests that verify the correct interaction between Laravel and n8n. Mock the n8n service to return predefined responses.",
+      "testStrategy": "Test the full cycle of job dispatch, n8n trigger, and result callback. Verify correct handling of various n8n response scenarios.",
+      "priority": "high",
+      "dependencies": [
+        13,
+        14,
+        15
+      ],
+      "status": "done",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Analyze Existing Integration Test Coverage",
+          "description": "Review the existing AdScriptIntegrationTest.php to identify gaps and areas for additional integration testing",
+          "details": "",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 29
+        },
+        {
+          "id": 2,
+          "title": "Create Service Layer Integration Tests",
+          "description": "Create tests that verify the interaction between AdScriptTaskService and HttpN8nClient with real service instances",
+          "details": "",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 29
+        },
+        {
+          "id": 3,
+          "title": "Create HTTP Client Integration Tests",
+          "description": "Create tests that use the actual HttpN8nClient with mocked HTTP responses to verify real HTTP communication patterns",
+          "details": "",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 29
+        },
+        {
+          "id": 4,
+          "title": "Create Queue Integration Tests",
+          "description": "Create tests that verify actual queue processing with job retry mechanisms and failure handling",
+          "details": "",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 29
+        },
+        {
+          "id": 5,
+          "title": "Create Configuration Integration Tests",
+          "description": "Create tests that verify different configuration scenarios and environment-based settings",
+          "details": "",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 29
+        },
+        {
+          "id": 6,
+          "title": "Create Error Propagation Integration Tests",
+          "description": "Create tests that verify how errors propagate through the entire stack from HTTP client to job to service layers",
+          "details": "",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 29
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "title": "Generate Test Coverage Reports",
+      "description": "Set up and generate test coverage reports in HTML and Clover XML formats.",
+      "details": "Configure Pest to generate coverage reports. Add necessary dependencies: `composer require --dev phpunit/php-code-coverage`. Update phpunit.xml to enable coverage.",
+      "testStrategy": "Run the full test suite with coverage and verify that reports are generated correctly. Aim for 90%+ coverage.",
+      "priority": "medium",
+      "dependencies": [
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 31,
+      "title": "Implement API Rate Limiting",
+      "description": "Add rate limiting to API endpoints to prevent abuse.",
+      "details": "Use Laravel's built-in rate limiting features. Apply limits to the ad script submission and result processing endpoints. Configure limits in the app/Http/Kernel.php file.",
+      "testStrategy": "Write tests that attempt to exceed the rate limit and verify that subsequent requests are blocked",
+      "priority": "medium",
+      "dependencies": [
+        10,
+        19
+      ],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 32,
+      "title": "Implement Audit Logging",
+      "description": "Set up comprehensive logging for all operations.",
+      "details": "Use Laravel's logging system. Create a custom channel for audit logs. Log all significant events including task creation, status changes, and error occurrences.",
+      "testStrategy": "Write tests that perform various operations and verify that appropriate log entries are created",
+      "priority": "medium",
+      "dependencies": [
+        10,
+        13,
+        19
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 33,
+      "title": "Create Comprehensive README",
+      "description": "Write a detailed README.md with setup and usage instructions.",
+      "details": "Include sections for project overview, requirements, setup instructions, usage guide, and development practices. Provide clear steps for getting the project running in under 10 minutes.",
+      "testStrategy": "Have a team member follow the README instructions to set up the project from scratch and verify it works as expected",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 34,
+      "title": "Create Architecture Diagrams",
+      "description": "Design and create architecture diagrams using Mermaid.js.",
+      "details": "Use Mermaid.js to create sequence diagrams showing the flow of data between Laravel, n8n, and the AI service. Include these diagrams in the README.md or a separate ARCHITECTURE.md file.",
+      "testStrategy": "Review the diagrams for accuracy and clarity. Ensure they render correctly on GitHub.",
+      "priority": "low",
+      "dependencies": [
+        33
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 35,
+      "title": "Create Postman Collection",
+      "description": "Develop a Postman collection with examples for all API endpoints.",
+      "details": "Create a Postman collection covering all API endpoints. Include example requests and responses. Add environment variables for easy configuration.",
+      "testStrategy": "Import the collection into a fresh Postman instance and verify that all requests work as expected",
+      "priority": "low",
+      "dependencies": [
+        10,
+        19
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 36,
+      "title": "Setup CI/CD Pipeline with GitHub Actions",
+      "description": "Configure GitHub Actions for automated checks as a final polish step after all core development is complete.",
+      "status": "pending",
+      "dependencies": [
+        1,
+        2,
+        10,
+        15,
+        20,
+        25,
+        30
+      ],
+      "priority": "low",
+      "details": "Create .github/workflows/ci.yml file. Include jobs for PHP CS Fixer, PHPStan, and Pest tests. Use actions/checkout@v3 and shivammathur/setup-php@v2 actions. Cache Composer dependencies. This task should be completed as a final step after all core development, testing, and documentation work is finished to ensure the CI/CD pipeline validates the completed codebase.",
+      "testStrategy": "Push changes to GitHub and verify that the workflow runs successfully against the completed codebase. Ensure all tests pass in the CI environment.",
+      "subtasks": []
+    }
+  ]
+}

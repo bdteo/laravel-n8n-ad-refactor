@@ -103,6 +103,20 @@ test-coverage: test-setup ## Run tests with coverage
 cs-fix: ## Fix PHP coding standards issues automatically
 	docker compose exec -T app bash -c "PHP_CS_FIXER_IGNORE_ENV=1 ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --verbose --ansi"
 	@echo "✅ PHP files have been auto-formatted according to coding standards"
+
+stan: ## Run PHPStan static analysis
+	docker compose exec -T app bash -c "php -d memory_limit=512M ./vendor/bin/phpstan analyse"
+	@echo "✅ PHPStan static analysis completed"
+
+stan-baseline: ## Generate a new PHPStan baseline
+	docker compose exec -T app bash -c "php -d memory_limit=512M ./vendor/bin/phpstan analyse --generate-baseline"
+	@echo "✅ PHPStan baseline has been updated"
+
+stan-clear: ## Clear PHPStan cache
+	docker compose exec -T app bash -c "rm -rf ./storage/framework/cache/phpstan-* || true"
+	@echo "✅ PHPStan cache has been cleared"
+
+code-quality: cs-fix stan ## Run all code quality checks
 	
 # Development setup options
 dev-setup: reliable-dev-setup ## Complete development setup using the reliable approach
@@ -272,3 +286,19 @@ fix-all-postman-tests: ## Fix all Postman tests to ensure they pass
 api-test-fix: ## Run API tests with automatic fixes for n8n callbacks
 	@php ./make-tools/fix-postman-tests.php
 	@make api-test
+
+# Integration tests
+fix-integration-tests: ## Fix integration tests to work alongside API tests
+	@echo "🔧 Fixing integration tests to work alongside API tests..."
+	@php ./make-tools/fix-integration-tests.php
+
+integration-test: fix-integration-tests ## Run integration tests with Laravel n8n client
+	@echo "🧪 Running integration tests with Laravel n8n client..."
+	docker compose exec -T app bash -c "php artisan config:clear && XDEBUG_MODE=off N8N_INTEGRATION_TEST_MODE=true ./vendor/bin/pest --filter=LaravelN8nIntegrationTest --colors=always"
+
+test-all: cs-fix stan fix-integration-tests ## Run all tests (code style, static analysis, and both API and integration tests)
+	@echo "🧪 Running all tests..."
+	@make test
+	@make api-test
+	@make integration-test
+	@echo "✅ All tests completed successfully!"

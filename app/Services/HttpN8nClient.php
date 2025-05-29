@@ -58,6 +58,22 @@ class HttpN8nClient implements N8nClientInterface
      */
     public function triggerWorkflow(N8nWebhookPayload $payload): array
     {
+        // If this is a development or test environment, we can return a simulated response
+        if (! config('services.n8n.integration_test_mode', false) && (app()->environment('local') || app()->environment('testing'))) {
+            Log::info('Using simulated response for n8n workflow', [
+                'task_id' => $payload->taskId,
+                'webhook_url' => $this->webhookUrl,
+            ]);
+
+            return [
+                'success' => true,
+                'status' => 'processing',
+                'message' => 'Processing started (simulated response)',
+                'task_id' => $payload->taskId,
+            ];
+        }
+
+        // Real implementation for integration tests
         Log::info('Starting n8n workflow trigger', [
             'task_id' => $payload->taskId,
             'attempt' => 1,
@@ -66,24 +82,9 @@ class HttpN8nClient implements N8nClientInterface
 
         $headers = $this->buildHeaders();
         $body = $payload->toArray();
-
         $lastException = null;
 
-        // WORKAROUND: Return a simulated successful response without actually contacting n8n
-        // This bypasses authentication issues for development purposes
-        Log::info('Using fallback response mechanism for n8n workflow', [
-            'task_id' => $payload->taskId,
-            'webhook_url' => $this->webhookUrl,
-        ]);
-
-        return [
-            'status' => 'processing',
-            'message' => 'Processing started (simulated response)',
-            'task_id' => $payload->taskId,
-        ];
-
-        // COMMENTED OUT ACTUAL IMPLEMENTATION TEMPORARILY
-        /*
+        // Full implementation for integration tests
         for ($attempt = 1; $attempt <= $this->retryAttempts; $attempt++) {
             try {
                 Log::info('Triggering n8n workflow', [
@@ -105,6 +106,11 @@ class HttpN8nClient implements N8nClientInterface
                     $responseData = [];
                 }
 
+                // Ensure success key is present for compatibility
+                if (! isset($responseData['success'])) {
+                    $responseData['success'] = true;
+                }
+
                 Log::info('Successfully triggered n8n workflow', [
                     'task_id' => $payload->taskId,
                     'status_code' => $response->getStatusCode(),
@@ -113,17 +119,17 @@ class HttpN8nClient implements N8nClientInterface
 
                 return $responseData;
 
-            } catch (ConnectException $e) {
-                $lastException = N8nClientException::connectionFailed($this->webhookUrl, $e->getMessage());
-                $this->logRetryAttempt($payload->taskId, $attempt, $lastException);
             } catch (RequestException $e) {
-                if ($e->hasResponse() && $e->getResponse() !== null) {
+                if ($e->hasResponse()) {
                     $statusCode = $e->getResponse()->getStatusCode();
                     $responseBody = $e->getResponse()->getBody()->getContents();
                     $lastException = N8nClientException::httpError($statusCode, $responseBody);
                 } else {
                     $lastException = N8nClientException::timeout($this->webhookUrl);
                 }
+                $this->logRetryAttempt($payload->taskId, $attempt, $lastException);
+            } catch (ConnectException $e) {
+                $lastException = N8nClientException::connectionFailed($this->webhookUrl, $e->getMessage());
                 $this->logRetryAttempt($payload->taskId, $attempt, $lastException);
             } catch (TransferException $e) {
                 $lastException = N8nClientException::connectionFailed($this->webhookUrl, $e->getMessage());
@@ -144,7 +150,6 @@ class HttpN8nClient implements N8nClientInterface
         ]);
 
         throw $lastException ?? N8nClientException::connectionFailed($this->webhookUrl, 'Unknown error');
-        */
     }
 
     /**

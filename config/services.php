@@ -42,6 +42,9 @@ return [
 
         // For development and testing, allows bypassing signature verification
         'disable_auth' => env('N8N_DISABLE_AUTH', false),
+
+        // Enable full error propagation for integration tests
+        'integration_test_mode' => env('N8N_INTEGRATION_TEST_MODE', false),
     ],
 
 ];

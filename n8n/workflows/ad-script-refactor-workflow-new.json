@@ -1,0 +1,498 @@
+{
+  "name": "Ad Script Refactor Workflow",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ad-script-processing",
+        "options": {
+          "noResponseBody": false
+        },
+        "authentication": "headerAuth"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "ad-script-processing",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-auth",
+          "name": "Laravel Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "task_id",
+              "value": "={{ $json.task_id }}"
+            },
+            {
+              "name": "reference_script",
+              "value": "={{ $json.reference_script }}"
+            },
+            {
+              "name": "outcome_description",
+              "value": "={{ $json.outcome_description }}"
+            }
+          ]
+        }
+      },
+      "id": "set-variables",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.reference_script }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-input",
+      "name": "Check Input",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "operation": "completion",
+        "model": "gpt-4o",
+        "promptType": "chat",
+        "promptValues": {
+          "systemMessageValues": {
+            "systemMessage": "You are an expert JavaScript developer specializing in advertising script optimization. Your task is to refactor advertising scripts to improve performance, readability, and maintainability while preserving functionality.\n\nYou must respond with a valid JSON object containing exactly these fields:\n- \"new_script\": The refactored JavaScript code as a string\n- \"analysis\": An object with detailed analysis including:\n  - \"improvements\": Array of improvements made\n  - \"performance_impact\": String describing expected performance changes\n  - \"maintainability\": String describing maintainability improvements\n  - \"potential_issues\": Array of potential issues or considerations\n  - \"recommendations\": Array of additional recommendations\n\nEnsure the refactored script maintains the same functionality while implementing best practices for modern JavaScript development."
+          },
+          "chatMessagesUi": {
+            "chatMessages": [
+              {
+                "role": "user",
+                "content": "Please refactor the following advertising script:\n\n**Original Script:**\n```javascript\n={{ $json.reference_script }}\n```\n\n**Desired Outcome:**\n={{ $json.outcome_description }}\n\nPlease provide the refactored script and detailed analysis in the specified JSON format."
+              }
+            ]
+          }
+        },
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Agent (GPT-4o)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-ai-response",
+      "name": "Check AI Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and prepare callback data\ntry {\n  const aiResponse = $input.first().json.choices[0].message.content;\n  const parsedResponse = JSON.parse(aiResponse);\n  \n  // Validate required fields\n  if (!parsedResponse.new_script || !parsedResponse.analysis) {\n    throw new Error('Invalid AI response: missing required fields');\n  }\n  \n  // Get task_id from the original webhook data\n  const taskId = $('Set Variables').first().json.task_id;\n  \n  return {\n    task_id: taskId,\n    new_script: parsedResponse.new_script,\n    analysis: parsedResponse.analysis,\n    status: 'success'\n  };\n} catch (error) {\n  // Get task_id from the original webhook data\n  const taskId = $('Set Variables').first().json.task_id;\n  \n  return {\n    task_id: taskId,\n    error: `Failed to parse AI response: ${error.message}`,\n    status: 'error'\n  };\n}"
+      },
+      "id": "process-success",
+      "name": "Process Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create error response\nconst taskId = $('Set Variables').first().json.task_id;\n\nreturn {\n  task_id: taskId,\n  error: 'AI model returned empty or invalid response',\n  status: 'error'\n};"
+      },
+      "id": "process-error",
+      "name": "Process Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.LARAVEL_APP_URL || 'http://app:8000' }}/api/ad-scripts/{{ $json.task_id }}/result",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "task_id",
+              "value": "={{ $json.task_id }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "new_script",
+              "value": "={{ $json.new_script }}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{ $json.analysis }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-success",
+      "name": "Send Success Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3.1,
+      "position": [
+        1560,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-auth",
+          "name": "Laravel Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.LARAVEL_APP_URL || 'http://app:8000' }}/api/ad-scripts/{{ $json.task_id }}/result",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "task_id",
+              "value": "={{ $json.task_id }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "error",
+              "value": "={{ $json.error }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-error",
+      "name": "Send Error Result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3.1,
+      "position": [
+        1560,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-auth",
+          "name": "Laravel Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"processing\", \"message\": \"Processing started\", \"task_id\": $json.task_id } }}"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"error\", \"message\": \"Invalid input\", \"task_id\": $json.task_id } }}"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create error response\nconst taskId = $('Set Variables').first().json.task_id;\n\nreturn {\n  task_id: taskId,\n  error: 'Critical error occurred during processing',\n  status: 'error'\n};"
+      },
+      "id": "critical-error",
+      "name": "Critical Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.LARAVEL_APP_URL || 'http://app:8000' }}/api/ad-scripts/{{ $json.task_id }}/result",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "task_id",
+              "value": "={{ $json.task_id }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status }}"
+            },
+            {
+              "name": "error",
+              "value": "={{ $json.error }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "send-critical",
+      "name": "Send Critical Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3.1,
+      "position": [
+        1560,
+        600
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "webhook-auth",
+          "name": "Laravel Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"error\", \"message\": \"Critical error handled\", \"task_id\": $json.task_id } }}"
+      },
+      "id": "critical-response",
+      "name": "Critical Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        860
+      ]
+    }
+  ],
+  "connections": {
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "set-variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set-variables": {
+      "main": [
+        [
+          {
+            "node": "check-input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-input": {
+      "main": [
+        [
+          {
+            "node": "ai-agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "error-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-agent": {
+      "main": [
+        [
+          {
+            "node": "check-ai-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-ai-response": {
+      "main": [
+        [
+          {
+            "node": "process-success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "process-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process-success": {
+      "main": [
+        [
+          {
+            "node": "send-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process-error": {
+      "main": [
+        [
+          {
+            "node": "send-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "critical-error": {
+      "main": [
+        [
+          {
+            "node": "send-critical",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "b8b6bc9a-c254-43df-aa7e-fc6b6a6121f6"
+  }
+}

@@ -9,10 +9,12 @@ use App\Models\AdScriptTask;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
+use Tests\Traits\TestsRateLimiting;
 
 class AdScriptResultProcessingTest extends TestCase
 {
     use RefreshDatabase;
+    use TestsRateLimiting;
 
     protected function setUp(): void
     {
@@ -46,9 +48,10 @@ class AdScriptResultProcessingTest extends TestCase
 
         $signature = 'sha256=' . hash_hmac('sha256', $payload, $secret);
 
-        return $this->postJson($uri, $data, [
-            'X-N8N-Signature' => $signature,
-        ]);
+        return $this->postJson($uri, $data, array_merge(
+            ['X-N8N-Signature' => $signature],
+            $this->getNoRateLimitHeaders()
+        ));
     }
 
     public function test_it_processes_successful_result_for_processing_task(): void
@@ -679,7 +682,7 @@ class AdScriptResultProcessingTest extends TestCase
         ];
 
         // Make request without signature
-        $response = $this->postJson("/api/ad-scripts/{$task->id}/result", $payload);
+        $response = $this->postJson("/api/ad-scripts/{$task->id}/result", $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(401)
             ->assertJson([
@@ -698,9 +701,10 @@ class AdScriptResultProcessingTest extends TestCase
         ];
 
         // Make request with invalid signature
-        $response = $this->postJson("/api/ad-scripts/{$task->id}/result", $payload, [
-            'X-N8N-Signature' => 'sha256=invalid-signature',
-        ]);
+        $response = $this->postJson("/api/ad-scripts/{$task->id}/result", $payload, array_merge(
+            ['X-N8N-Signature' => 'sha256=invalid-signature'],
+            $this->getNoRateLimitHeaders()
+        ));
 
         $response->assertStatus(401)
             ->assertJson([

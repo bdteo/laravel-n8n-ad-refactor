@@ -42,4 +42,12 @@ class N8nClientException extends Exception
     {
         return new self("Request to n8n webhook at {$url} timed out");
     }
+
+    /**
+     * Create a new exception for invalid responses.
+     */
+    public static function invalidResponse(string $reason): self
+    {
+        return new self("Invalid response from n8n: {$reason}");
+    }
 }

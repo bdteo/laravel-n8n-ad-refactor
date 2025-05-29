@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Contracts\AdScriptTaskServiceInterface;
 use App\DTOs\N8nResultPayload;
 use App\DTOs\N8nWebhookPayload;
 use App\Enums\TaskStatus;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class AdScriptTaskService
+class AdScriptTaskService implements AdScriptTaskServiceInterface
 {
     /**
      * The audit log service instance.

@@ -34,7 +34,7 @@ readonly class N8nWebhookPayload
     public static function fromAdScriptTask(\App\Models\AdScriptTask $task): self
     {
         return new self(
-            taskId: $task->id,
+            taskId: (string)$task->id,
             referenceScript: $task->reference_script,
             outcomeDescription: $task->outcome_description,
         );

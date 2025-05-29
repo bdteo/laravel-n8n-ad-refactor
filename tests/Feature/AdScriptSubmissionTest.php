@@ -9,10 +9,12 @@ use App\Models\AdScriptTask;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
+use Tests\Traits\TestsRateLimiting;
 
 class AdScriptSubmissionTest extends TestCase
 {
     use RefreshDatabase;
+    use TestsRateLimiting;
 
     protected function setUp(): void
     {
@@ -27,7 +29,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => 'Make it more engaging and persuasive.',
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(202)
             ->assertJsonStructure([
@@ -57,7 +59,7 @@ class AdScriptSubmissionTest extends TestCase
 
     public function test_it_validates_required_fields(): void
     {
-        $response = $this->postJson('/api/ad-scripts', []);
+        $response = $this->postJson('/api/ad-scripts', [], $this->getNoRateLimitHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['reference_script', 'outcome_description']);
@@ -70,7 +72,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => 'Valid description',
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['reference_script'])
@@ -86,7 +88,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => 'Valid description',
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['reference_script'])
@@ -102,7 +104,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => 'abc',
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['outcome_description'])
@@ -118,7 +120,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => str_repeat('a', 1001),
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['outcome_description'])
@@ -134,7 +136,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => ['not', 'a', 'string'],
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['reference_script', 'outcome_description']);
@@ -147,7 +149,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => 'Make it more engaging and persuasive.',
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(202);
 
@@ -168,7 +170,7 @@ class AdScriptSubmissionTest extends TestCase
             'outcome_description' => 'Make it more engaging and persuasive.',
         ];
 
-        $response = $this->postJson('/api/ad-scripts', $payload);
+        $response = $this->postJson('/api/ad-scripts', $payload, $this->getNoRateLimitHeaders());
 
         $response->assertStatus(202);
 

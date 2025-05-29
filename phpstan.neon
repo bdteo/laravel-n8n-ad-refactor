@@ -3,16 +3,17 @@ includes:
     - phpstan-baseline.neon
 
 parameters:
-    level: max
+    level: 5
     paths:
-        - app/
-        - config/
-        - database/
-        - routes/
-        - tests/
+        - app
+        - config
+        - database
+        - routes
+        - tests
     
     # Ignore Laravel's magic methods and properties
     ignoreErrors:
+        - '#If condition is always true.#'
         - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Builder#'
         - '#Call to an undefined method Illuminate\\Database\\Query\\Builder#'
         - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model#'

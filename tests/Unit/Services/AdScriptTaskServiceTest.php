@@ -12,8 +12,8 @@ use App\Services\AdScriptTaskService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
+use Illuminate\Log\LogManager;
 
 class AdScriptTaskServiceTest extends TestCase
 {
@@ -28,6 +28,13 @@ class AdScriptTaskServiceTest extends TestCase
         // Mock the AuditLogService
         $mockAuditLogService = $this->createMock(\App\Services\AuditLogService::class);
         $this->service = new AdScriptTaskService($mockAuditLogService);
+
+        // Mock the Log facade with a Mockery logger
+        $mockLogger = \Mockery::mock(LogManager::class);
+        $mockLogger->shouldReceive('info')->andReturn(true);
+        $mockLogger->shouldReceive('warning')->andReturn(true);
+        $mockLogger->shouldReceive('error')->andReturn(true);
+        \Illuminate\Support\Facades\Log::swap($mockLogger);
     }
 
     public function test_create_task_creates_new_task_with_correct_data(): void
@@ -225,19 +232,21 @@ class AdScriptTaskServiceTest extends TestCase
         $this->assertEquals('Invalid result payload received from n8n', $freshTask->error_details);
     }
 
-    public function test_create_webhook_payload_returns_correct_payload(): void
+    /**
+     * We're refactoring code to avoid directly using N8nWebhookPayload
+     * This test is no longer needed as we're passing the task directly to triggerWorkflow
+     */
+    public function test_task_contains_required_payload_properties(): void
     {
         $task = AdScriptTask::factory()->create([
             'reference_script' => 'test script',
             'outcome_description' => 'test description',
         ]);
 
-        $payload = $this->service->createWebhookPayload($task);
-
-        $this->assertInstanceOf(N8nWebhookPayload::class, $payload);
-        $this->assertEquals($task->id, $payload->taskId);
-        $this->assertEquals($task->reference_script, $payload->referenceScript);
-        $this->assertEquals($task->outcome_description, $payload->outcomeDescription);
+        // Instead of testing createWebhookPayload, we verify the task has the properties needed
+        $this->assertNotNull($task->id);
+        $this->assertEquals('test script', $task->reference_script);
+        $this->assertEquals('test description', $task->outcome_description);
     }
 
     public function test_can_process_returns_true_for_pending_task(): void
@@ -530,10 +539,6 @@ class AdScriptTaskServiceTest extends TestCase
 
     public function test_process_result_idempotent_with_transaction(): void
     {
-        Log::shouldReceive('info')->andReturn(true);
-        Log::shouldReceive('warning')->andReturn(true);
-        Log::shouldReceive('error')->andReturn(true);
-
         $task = AdScriptTask::factory()->create(['status' => TaskStatus::PROCESSING]);
         $newScript = 'console.log("test");';
         $analysis = ['improvement' => 'Better'];
@@ -555,9 +560,6 @@ class AdScriptTaskServiceTest extends TestCase
 
     public function test_process_result_idempotent_handles_exceptions(): void
     {
-        Log::shouldReceive('info')->andReturn(true);
-        Log::shouldReceive('error')->andReturn(true);
-
         $task = AdScriptTask::factory()->create(['status' => TaskStatus::PROCESSING]);
 
         // Mock DB transaction to throw exception

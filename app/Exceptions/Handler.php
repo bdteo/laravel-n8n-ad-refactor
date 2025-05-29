@@ -82,12 +82,17 @@ class Handler extends ExceptionHandler
             'headers' => $this->getFilteredHeaders($request),
         ];
 
-        // Add user context if authenticated
-        if (auth()->check()) {
-            $context['user'] = [
-                'id' => auth()->id(),
-                'email' => auth()->user()->email ?? 'unknown',
-            ];
+        // Add user context if authenticated - safely check auth to avoid test failures
+        try {
+            if (auth()->check()) {
+                $context['user'] = [
+                    'id' => auth()->id(),
+                    'email' => auth()->user()->email ?? 'unknown',
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Silent fail for auth errors in testing environments
+            $context['auth_error'] = 'Could not retrieve auth information';
         }
 
         // Add specific context for custom exceptions

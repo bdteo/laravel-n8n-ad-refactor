@@ -1,13 +1,12 @@
 {
   "name": "Ad Script Refactor Workflow",
+  "active": false,
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "ad-script-processing",
-        "options": {
-          "noResponseBody": false
-        },
+        "options": {},
         "authentication": "headerAuth"
       },
       "id": "webhook-trigger",
@@ -43,8 +42,7 @@
               "value": "={{ $json.outcome_description }}"
             }
           ]
-        },
-        "options": {}
+        }
       },
       "id": "set-variables",
       "name": "Set Variables",
@@ -57,58 +55,25 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.task_id }}",
-              "operation": "isNotEmpty"
-            },
-            {
-              "value1": "={{ $json.reference_script }}",
-              "operation": "isNotEmpty"
-            }
-          ]
+        "authentication": "predefinedCredentialType",
+        "operation": "completion",
+        "model": "gpt-4",
+        "promptType": "text",
+        "promptValues": {
+          "text": "You are an expert JavaScript developer specializing in advertising script optimization.\n\nPlease refactor the following advertising script to improve performance, readability, and maintainability:\n\n```javascript\n{{ $json.reference_script }}\n```\n\nDesired outcome: {{ $json.outcome_description }}\n\nRespond with a valid JSON object containing:\n- \"new_script\": The refactored code\n- \"analysis\": Object with analysis details including improvements made, performance impact, maintainability improvements, potential issues, and recommendations."
         },
-        "combineOperation": "all"
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 2000
+        }
       },
-      "id": "validate-input",
-      "name": "Validate Input",
-      "type": "n8n-nodes-base.if",
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "n8n-nodes-base.openAi",
       "typeVersion": 1,
       "position": [
         680,
         300
-      ]
-    },
-    {
-      "parameters": {
-        "model": "gpt-4o",
-        "messages": {
-          "messageType": "multipleMessages",
-          "values": [
-            {
-              "role": "system",
-              "content": "You are an expert JavaScript developer specializing in advertising script optimization. Your task is to refactor advertising scripts to improve performance, readability, and maintainability while preserving functionality.\n\nYou must respond with a valid JSON object containing exactly these fields:\n- \"new_script\": The refactored JavaScript code as a string\n- \"analysis\": An object with detailed analysis including:\n  - \"improvements\": Array of improvements made\n  - \"performance_impact\": String describing expected performance changes\n  - \"maintainability\": String describing maintainability improvements\n  - \"potential_issues\": Array of potential issues or considerations\n  - \"recommendations\": Array of additional recommendations\n\nEnsure the refactored script maintains the same functionality while implementing best practices for modern JavaScript development."
-            },
-            {
-              "role": "user",
-              "content": "Please refactor the following advertising script:\n\n**Original Script:**\n```javascript\n{{ $json.reference_script }}\n```\n\n**Desired Outcome:**\n{{ $json.outcome_description }}\n\nPlease provide the refactored script and detailed analysis in the specified JSON format."
-            }
-          ]
-        },
-        "options": {
-          "temperature": 0.3,
-          "maxTokens": 2000,
-          "timeout": 60000
-        }
-      },
-      "id": "ai-agent",
-      "name": "AI Agent (GPT-4o)",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1,
-      "position": [
-        900,
-        200
       ],
       "credentials": {
         "openAiApi": {
@@ -119,68 +84,23 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.choices && $json.choices[0] && $json.choices[0].message && $json.choices[0].message.content }}",
-              "operation": "isNotEmpty"
-            }
-          ]
-        }
+        "jsCode": "// Parse AI response and prepare data\ntry {\n  const aiResponse = $input.first().json.text || $input.first().json.choices[0].text || $input.first().json.choices[0].message.content;\n  let parsedResponse;\n  \n  try {\n    parsedResponse = JSON.parse(aiResponse);\n  } catch (parseError) {\n    // Try to extract JSON if wrapped in markdown or other text\n    const jsonMatch = aiResponse.match(/```json\\s*([\\s\\S]*?)\\s*```/) || \n                      aiResponse.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsedResponse = JSON.parse(jsonMatch[1] || jsonMatch[0]);\n    } else {\n      throw new Error('Could not parse JSON from response');\n    }\n  }\n  \n  // Validate required fields\n  if (!parsedResponse.new_script || !parsedResponse.analysis) {\n    throw new Error('Invalid AI response: missing required fields');\n  }\n  \n  // Get task_id from the original data\n  const taskId = $('set-variables').first().json.task_id;\n  \n  return {\n    task_id: taskId,\n    new_script: parsedResponse.new_script,\n    analysis: parsedResponse.analysis,\n    status: 'success'\n  };\n} catch (error) {\n  // Get task_id from the original data\n  const taskId = $('set-variables').first().json.task_id;\n  \n  return {\n    task_id: taskId,\n    error: `Failed to process AI response: ${error.message}`,\n    status: 'error'\n  };\n}"
       },
-      "id": "check-ai-response",
-      "name": "Check AI Response",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        1120,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Parse AI response and prepare callback data\ntry {\n  const aiResponse = $input.first().json.choices[0].message.content;\n  const parsedResponse = JSON.parse(aiResponse);\n  \n  // Validate required fields\n  if (!parsedResponse.new_script || !parsedResponse.analysis) {\n    throw new Error('Invalid AI response: missing required fields');\n  }\n  \n  // Get task_id from the original webhook data\n  const taskId = $('Set Variables').first().json.task_id;\n  \n  return {\n    task_id: taskId,\n    new_script: parsedResponse.new_script,\n    analysis: parsedResponse.analysis,\n    status: 'success'\n  };\n} catch (error) {\n  // Get task_id from the original webhook data\n  const taskId = $('Set Variables').first().json.task_id;\n  \n  return {\n    task_id: taskId,\n    error: `Failed to parse AI response: ${error.message}`,\n    status: 'error'\n  };\n}"
-      },
-      "id": "process-success",
-      "name": "Process Success",
+      "id": "process-response",
+      "name": "Process Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
       "position": [
-        1340,
-        100
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Handle AI processing error\nconst taskId = $('Set Variables').first().json.task_id;\nconst errorMessage = $input.first().json.error || 'AI processing failed';\n\nreturn {\n  task_id: taskId,\n  error: `AI processing error: ${errorMessage}`,\n  status: 'error'\n};"
-      },
-      "id": "process-ai-error",
-      "name": "Process AI Error",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [
-        1340,
+        900,
         300
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Handle input validation error\nconst taskId = $('Set Variables').first().json.task_id || 'unknown';\n\nreturn {\n  task_id: taskId,\n  error: 'Invalid input: missing required fields (task_id or reference_script)',\n  status: 'error'\n};"
-      },
-      "id": "process-validation-error",
-      "name": "Process Validation Error",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [
-        900,
-        400
-      ]
-    },
-    {
-      "parameters": {
-        "url": "={{ $env.LARAVEL_APP_URL || 'http://app:8000' }}/api/ad-scripts/{{ $json.task_id }}/result",
+        "url": "http://app/api/ad-scripts/{{ $json.task_id }}/result",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
+        "method": "POST",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -191,479 +111,93 @@
             {
               "name": "Accept",
               "value": "application/json"
-            },
-            {
-              "name": "X-Source",
-              "value": "n8n-workflow"
             }
           ]
         },
         "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "new_script",
-              "value": "={{ $json.new_script }}"
-            },
-            {
-              "name": "analysis",
-              "value": "={{ $json.analysis }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 30000,
-          "retry": {
-            "enabled": true,
-            "maxRetries": 3,
-            "retryInterval": 1000
-          }
-        }
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
       },
-      "id": "success-callback",
-      "name": "Success Callback",
+      "id": "callback-request",
+      "name": "Callback Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 3,
       "position": [
-        1560,
-        100
+        1120,
+        300
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "laravel-callback-auth",
-          "name": "Laravel Callback Auth"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "url": "={{ $env.LARAVEL_APP_URL || 'http://app:8000' }}/api/ad-scripts/{{ $json.task_id }}/result",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            },
-            {
-              "name": "X-Source",
-              "value": "n8n-workflow"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "error",
-              "value": "={{ $json.error }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 30000,
-          "retry": {
-            "enabled": true,
-            "maxRetries": 3,
-            "retryInterval": 1000
-          }
-        }
-      },
-      "id": "error-callback",
-      "name": "Error Callback",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [
-        1560,
-        350
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "laravel-callback-auth",
-          "name": "Laravel Callback Auth"
+          "id": "webhook-auth",
+          "name": "Laravel Webhook Auth"
         }
       }
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"success\", \"message\": \"Callback sent successfully\", \"task_id\": $json.task_id } }}"
+        "responseBody": "={{ { \"status\": \"processing\", \"message\": \"Processing started\", \"task_id\": $json.task_id } }}"
       },
-      "id": "webhook-response-success",
-      "name": "Webhook Response Success",
+      "id": "webhook-response",
+      "name": "Webhook Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1780,
-        100
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"error\", \"message\": \"Error callback sent\", \"task_id\": $json.task_id } }}"
-      },
-      "id": "webhook-response-error",
-      "name": "Webhook Response Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        1780,
-        350
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Global error handler for unexpected failures\nlet taskId = 'unknown';\nlet errorMessage = 'Unknown error occurred';\n\ntry {\n  // Try to get task_id from various possible sources\n  if ($('Set Variables').first() && $('Set Variables').first().json.task_id) {\n    taskId = $('Set Variables').first().json.task_id;\n  } else if ($input.first() && $input.first().json && $input.first().json.task_id) {\n    taskId = $input.first().json.task_id;\n  }\n  \n  // Get error details\n  if ($input.first() && $input.first().json && $input.first().json.error) {\n    errorMessage = $input.first().json.error.message || $input.first().json.error;\n  } else if ($input.first() && $input.first().error) {\n    errorMessage = $input.first().error.message || $input.first().error;\n  }\n} catch (e) {\n  errorMessage = 'Critical workflow error: ' + e.message;\n}\n\nreturn {\n  task_id: taskId,\n  error: `Workflow error: ${errorMessage}`,\n  status: 'error'\n};"
-      },
-      "id": "global-error-handler",
-      "name": "Global Error Handler",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [
-        1340,
-        500
-      ]
-    },
-    {
-      "parameters": {
-        "url": "={{ $env.LARAVEL_APP_URL || 'http://app:8000' }}/api/ad-scripts/{{ $json.task_id }}/result",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Accept",
-              "value": "application/json"
-            },
-            {
-              "name": "X-Source",
-              "value": "n8n-workflow"
-            }
-          ]
-        },
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "error",
-              "value": "={{ $json.error }}"
-            }
-          ]
-        },
-        "options": {
-          "timeout": 30000,
-          "retry": {
-            "enabled": true,
-            "maxRetries": 3,
-            "retryInterval": 1000
-          },
-          "ignoreHttpStatusErrors": true
-        }
-      },
-      "id": "global-error-callback",
-      "name": "Global Error Callback",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 3,
-      "position": [
-        1560,
-        500
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "laravel-callback-auth",
-          "name": "Laravel Callback Auth"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"status\": \"error\", \"message\": \"Critical error handled\", \"task_id\": $json.task_id } }}"
-      },
-      "id": "webhook-response-critical",
-      "name": "Webhook Response Critical",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        1780,
-        500
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "error-trigger-webhook",
-      "name": "Error Trigger - Webhook",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        240,
-        600
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "error-trigger-variables",
-      "name": "Error Trigger - Variables",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        460,
-        600
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "error-trigger-ai",
-      "name": "Error Trigger - AI",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        900,
-        600
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "error-trigger-callback",
-      "name": "Error Trigger - Callback",
-      "type": "n8n-nodes-base.errorTrigger",
-      "typeVersion": 1,
-      "position": [
-        1560,
-        600
+        680,
+        460
       ]
     }
   ],
   "connections": {
-    "Webhook Trigger": {
+    "webhook-trigger": {
       "main": [
         [
           {
-            "node": "Set Variables",
+            "node": "set-variables",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Set Variables": {
+    "set-variables": {
       "main": [
         [
           {
-            "node": "Validate Input",
+            "node": "ai-agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "webhook-response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Validate Input": {
+    "ai-agent": {
       "main": [
         [
           {
-            "node": "AI Agent (GPT-4o)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Process Validation Error",
+            "node": "process-response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent (GPT-4o)": {
+    "process-response": {
       "main": [
         [
           {
-            "node": "Check AI Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check AI Response": {
-      "main": [
-        [
-          {
-            "node": "Process Success",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Process AI Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Process Success": {
-      "main": [
-        [
-          {
-            "node": "Success Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Process AI Error": {
-      "main": [
-        [
-          {
-            "node": "Error Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Process Validation Error": {
-      "main": [
-        [
-          {
-            "node": "Error Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Success Callback": {
-      "main": [
-        [
-          {
-            "node": "Webhook Response Success",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Callback": {
-      "main": [
-        [
-          {
-            "node": "Webhook Response Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Global Error Handler": {
-      "main": [
-        [
-          {
-            "node": "Global Error Callback",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Global Error Callback": {
-      "main": [
-        [
-          {
-            "node": "Webhook Response Critical",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Trigger - Webhook": {
-      "main": [
-        [
-          {
-            "node": "Global Error Handler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Trigger - Variables": {
-      "main": [
-        [
-          {
-            "node": "Global Error Handler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Trigger - AI": {
-      "main": [
-        [
-          {
-            "node": "Global Error Handler",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Error Trigger - Callback": {
-      "main": [
-        [
-          {
-            "node": "Global Error Handler",
+            "node": "callback-request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     }
-  },
-  "active": true,
-  "settings": {
-    "timezone": "UTC",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": {
-      "enabled": true
-    }
-  },
-  "versionId": "2",
-  "meta": {
-    "templateCredsSetupCompleted": false
-  },
-  "id": "ad-script-refactor",
-  "tags": [
-    {
-      "id": "laravel-integration",
-      "name": "Laravel Integration"
-    },
-    {
-      "id": "ai-processing",
-      "name": "AI Processing"
-    },
-    {
-      "id": "error-handling",
-      "name": "Error Handling"
-    }
-  ]
-} 
+  }
+}

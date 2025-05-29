@@ -45,6 +45,10 @@ return [
 
         // Enable full error propagation for integration tests
         'integration_test_mode' => env('N8N_INTEGRATION_TEST_MODE', false),
+
+        // Allow disabling rate limiting for Postman and other integration tests
+        // Default is false (rate limiting enabled), set to true to disable rate limiting
+        'disable_rate_limiting' => env('N8N_DISABLE_RATE_LIMITING', false),
     ],
 
 ];

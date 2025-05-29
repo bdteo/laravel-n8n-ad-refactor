@@ -6,8 +6,8 @@
     "build": "vite build",
     "prepare": "husky",
     "commit": "cz",
-    "test:api": "newman run postman/Ad_Script_Refactor_API.postman_collection.json -e postman/local_dev.postman_environment.json --bail -r cli,htmlextra --reporter-htmlextra-export postman/report.html",
-    "test:api:ci": "newman run postman/Ad_Script_Refactor_API.postman_collection.json -e postman/ci.postman_environment.json --bail -r cli,junit --reporter-junit-export postman/junit_report.xml"
+    "test:api:local": "newman run postman/Ad_Script_Refactor_API.postman_collection.json -e postman/local_dev.postman_environment.json --bail -r cli,htmlextra --reporter-htmlextra-export postman/report.html --reporter-htmlextra-title \"Local API Test Report\"",
+    "test:api:ci": "newman run postman/Ad_Script_Refactor_API.postman_collection.json -e postman/ci.postman_environment.json --env-var \"n8n_callback_hmac_secret=$N8N_CALLBACK_HMAC_SECRET_CI\" --bail -r cli,junit --reporter-junit-export postman/junit_report.xml"
   },
   "devDependencies": {
     "axios": "^1.6.4",

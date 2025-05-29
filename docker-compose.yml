@@ -13,6 +13,8 @@ services:
       - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
     networks:
       - laravel-n8n-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - mysql
       - redis
@@ -39,6 +41,8 @@ services:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
     networks:
       - laravel-n8n-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - app
 
@@ -88,7 +92,7 @@ services:
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
-      - WEBHOOK_URL=http://localhost:5678
+      - WEBHOOK_URL=http://host.docker.internal:5678
       - GENERIC_TIMEZONE=UTC
       - N8N_LOG_LEVEL=info
       - N8N_METRICS=true
@@ -99,6 +103,8 @@ services:
       - ./n8n/workflows:/home/node/.n8n/workflows
     networks:
       - laravel-n8n-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Queue Worker
   queue:
@@ -114,6 +120,8 @@ services:
       - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
     networks:
       - laravel-n8n-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - mysql
       - redis

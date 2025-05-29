@@ -39,6 +39,9 @@ return [
 
         // For Laravel to verify HMAC signatures from n8n callbacks
         'callback_hmac_secret' => env('N8N_CALLBACK_HMAC_SECRET'),
+
+        // For development and testing, allows bypassing signature verification
+        'disable_auth' => env('N8N_DISABLE_AUTH', false),
     ],
 
 ];

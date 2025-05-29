@@ -188,13 +188,15 @@ class ProcessAdScriptResultController extends Controller
      */
     private function determineHttpStatus(array $result): int
     {
-        // If processing failed due to an exception
-        if (isset($result['error'])) {
+        // If processing failed due to an internal exception
+        if (isset($result['error']) && ! isset($result['status'])) {
             return 500;
         }
 
-        // If processing succeeded or was idempotent
-        if ($result['success']) {
+        // For both success and failure callbacks, return 200 if the request was valid
+        // This ensures that error callbacks are treated as successful API requests
+        // even though they contain error information about the task
+        if ($result['success'] || isset($result['status'])) {
             return 200;
         }
 

@@ -1,9 +1,24 @@
 parameters:
 	ignoreErrors:
 		-
-			message: "#^If condition is always true\\.$#"
+			message: "#^Parameter \\#1 \\$logData of method App\\\\Console\\\\Commands\\\\AuditLogViewerCommand\\:\\:shouldSkip\\(\\) expects array, mixed given\\.$#"
 			count: 1
-			path: app/Exceptions/Handler.php
+			path: app/Console/Commands/AuditLogViewerCommand.php
+
+		-
+			message: "#^Parameter \\#1 \\$string of method Illuminate\\\\Console\\\\Command\\:\\:line\\(\\) expects string, string\\|false given\\.$#"
+			count: 1
+			path: app/Console/Commands/AuditLogViewerCommand.php
+
+		-
+			message: "#^Parameter \\#1 \\$value of function count expects array\\|Countable, array\\<int, string\\>\\|false given\\.$#"
+			count: 1
+			path: app/Console/Commands/AuditLogViewerCommand.php
+
+		-
+			message: "#^Part \\$availableDate \\(mixed\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: app/Console/Commands/AuditLogViewerCommand.php
 
 		-
 			message: "#^If condition is always true\\.$#"
@@ -12,8 +27,23 @@ parameters:
 
 		-
 			message: "#^If condition is always true\\.$#"
-			count: 1
+			count: 2
 			path: app/Http/Controllers/Api/StoreAdScriptTaskController.php
+
+		-
+			message: "#^Method App\\\\Jobs\\\\TriggerN8nWorkflow\\:\\:triggerN8nAndLog\\(\\) is unused\\.$#"
+			count: 1
+			path: app/Jobs/TriggerN8nWorkflow.php
+
+		-
+			message: "#^Method App\\\\Services\\\\HttpN8nClient\\:\\:logRetryAttempt\\(\\) is unused\\.$#"
+			count: 1
+			path: app/Services/HttpN8nClient.php
+
+		-
+			message: "#^Property App\\\\Services\\\\HttpN8nClient\\:\\:\\$retryDelays is never read, only written\\.$#"
+			count: 1
+			path: app/Services/HttpN8nClient.php
 
 		-
 			message: "#^Access to an undefined property App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\:\\:\\$analysis\\.$#"
@@ -62,7 +92,7 @@ parameters:
 
 		-
 			message: "#^Cannot access property \\$id on App\\\\Models\\\\AdScriptTask\\|Illuminate\\\\Database\\\\Eloquent\\\\Collection\\<int, App\\\\Models\\\\AdScriptTask\\>\\|null\\.$#"
-			count: 2
+			count: 1
 			path: tests/Feature/AdScriptIntegrationTest.php
 
 		-
@@ -192,7 +222,7 @@ parameters:
 
 		-
 			message: "#^Method Illuminate\\\\Testing\\\\TestResponse\\:\\:assertStatus\\(\\) invoked with 2 parameters, 1 required\\.$#"
-			count: 10
+			count: 9
 			path: tests/Feature/ApiSecurityAndLimitsTest.php
 
 		-

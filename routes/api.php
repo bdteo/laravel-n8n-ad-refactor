@@ -25,3 +25,8 @@ Route::post('/ad-scripts', StoreAdScriptTaskController::class)
 
 Route::post('/ad-scripts/{task}/result', ProcessAdScriptResultController::class)
     ->middleware(['webhook.signature', 'throttle:result-processing', 'throttle:result-processing-hourly']);
+
+// Simple health check endpoint for our development setup script
+Route::get('/health-check', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
+});

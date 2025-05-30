@@ -311,4 +311,30 @@ class VerifyWebhookSignatureTest extends TestCase
         $this->assertArrayHasKey('error', $responseData);
         $this->assertEquals('Invalid webhook signature', $responseData['error']);
     }
+
+    public function test_middleware_passes_when_auth_disabled(): void
+    {
+        // Arrange
+        config(['services.n8n.disable_auth' => true]);
+        $payload = '{"test": "data"}';
+
+        $request = Request::create('/test', 'POST', [], [], [], [], $payload);
+        // No signature header set, which would normally fail
+
+        $nextCalled = false;
+        $next = function ($request) use (&$nextCalled) {
+            $nextCalled = true;
+            return response()->json(['success' => true]);
+        };
+
+        // Act
+        $response = $this->middleware->handle($request, $next);
+
+        // Assert
+        $this->assertTrue($nextCalled);
+        $this->assertEquals(200, $response->getStatusCode());
+
+        // Reset config for other tests
+        config(['services.n8n.disable_auth' => false]);
+    }
 }

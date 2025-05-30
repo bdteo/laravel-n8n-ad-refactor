@@ -19,6 +19,14 @@ trait TestsRateLimiting
     protected function setRateLimiting(bool $enabled = true): void
     {
         config(['services.n8n.disable_rate_limiting' => ! $enabled]);
+
+        // Set the testing.rate_limiting flag that the middleware uses
+        app()->singleton('testing.rate_limiting', function () use ($enabled) {
+            return $enabled;
+        });
+
+        // Ensure config is correctly applied in application
+        app()->instance('rate_limiting.status', ! $enabled);
     }
 
     /**
@@ -38,7 +46,12 @@ trait TestsRateLimiting
      */
     protected function getNoRateLimitHeaders(): array
     {
-        return ['X-Disable-Rate-Limiting' => 'true', 'X-Enable-Rate-Limiting' => 'false'];
+        return [
+            'X-Disable-Rate-Limiting' => 'true',
+            'X-Enable-Rate-Limiting' => 'false',
+            'throttle_middleware_disabled' => 'true',
+            'X-Testing-Skip-Rate-Limits' => 'true',
+        ];
     }
 
     /**
@@ -99,10 +112,19 @@ trait TestsRateLimiting
     protected function clearRateLimits(): void
     {
         // Clear all rate limiters used in the application
-        \Illuminate\Support\Facades\RateLimiter::clear('ad-script-submission');
-        \Illuminate\Support\Facades\RateLimiter::clear('ad-script-submission-hourly');
-        \Illuminate\Support\Facades\RateLimiter::clear('result-processing');
-        \Illuminate\Support\Facades\RateLimiter::clear('result-processing-hourly');
-        \Illuminate\Support\Facades\Cache::flush();
+        $limiters = [
+            'ad-script-submission',
+            'ad-script-submission-hourly',
+            'result-processing',
+            'result-processing-hourly',
+            'api',
+        ];
+
+        // Use Laravel's cache system instead of direct Redis access
+        // This works with any cache driver, not just Redis
+        foreach ($limiters as $limiter) {
+            $key = 'laravel_cache:limiter:' . $limiter . ':' . request()->ip();
+            \Illuminate\Support\Facades\Cache::forget($key);
+        }
     }
 }

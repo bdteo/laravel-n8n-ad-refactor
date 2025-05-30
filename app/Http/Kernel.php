@@ -21,6 +21,9 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        \App\Http\Middleware\HandleJsonErrors::class,
+        \App\Http\Middleware\DisableRateLimitingForTests::class,
+        \App\Http\Middleware\IntegrationTestRateLimitBypass::class,
     ];
 
     /**

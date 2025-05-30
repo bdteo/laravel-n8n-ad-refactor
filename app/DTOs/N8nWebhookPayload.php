@@ -9,10 +9,17 @@ namespace App\DTOs;
  */
 readonly class N8nWebhookPayload
 {
+    /**
+     * @param string $taskId The task ID
+     * @param string $referenceScript The reference script
+     * @param string $outcomeDescription The outcome description
+     * @param string|null $unusedParameter Kept for backward compatibility with tests
+     */
     public function __construct(
         public string $taskId,
         public string $referenceScript,
         public string $outcomeDescription,
+        public ?string $unusedParameter = null,
     ) {
     }
 

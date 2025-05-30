@@ -449,6 +449,7 @@ class AdScriptTaskService implements AdScriptTaskServiceInterface
             'task_id' => $task->id,
             'status' => $task->status->value,
             'was_updated' => $success,
+            'idempotency_violated' => ! $success, // Add flag to indicate idempotency violation
             'message' => $message ?? ($success ? 'No changes needed' : 'Cannot process in current state'),
         ];
     }

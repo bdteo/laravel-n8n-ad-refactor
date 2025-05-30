@@ -115,6 +115,7 @@ class HttpN8nClient implements N8nClientInterface
             foreach ($backtrace as $trace) {
                 if (strpos($trace['function'], 'test_') === 0) {
                     $testFunction = $trace['function'];
+
                     break;
                 }
             }
@@ -215,6 +216,7 @@ class HttpN8nClient implements N8nClientInterface
                             } elseif (strpos($testFunction, 'retry_mechanism') !== false) {
                                 $responseData['workflow_id'] = 'retry-success';
                             }
+
                             break;
                         }
                     }

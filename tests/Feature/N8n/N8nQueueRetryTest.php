@@ -114,8 +114,8 @@ class N8nQueueRetryTest extends TestCase
         $this->app->instance(AdScriptTaskServiceInterface::class, $mockAdScriptTaskService);
 
         // Inject our mocks directly into the job
-        $job->adScriptTaskService = $mockAdScriptTaskService;
-        $job->n8nClient = $mockN8nClient;
+        $job->setAdScriptTaskService($mockAdScriptTaskService);
+        $job->setN8nClient($mockN8nClient);
 
         // Skip the actual job execution since we're just testing the test setup
         // This avoids the "Task cannot be processed: invalid status" error

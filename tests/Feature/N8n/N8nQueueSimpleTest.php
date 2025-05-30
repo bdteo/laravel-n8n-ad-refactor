@@ -87,6 +87,7 @@ class N8nQueueSimpleTest extends TestCase
             ->zeroOrMoreTimes()
             ->andReturnUsing(function ($taskObj) {
                 $taskObj->markAsProcessing();
+
                 return true;
             });
         // @phpstan-ignore-next-line
@@ -94,6 +95,7 @@ class N8nQueueSimpleTest extends TestCase
             ->zeroOrMoreTimes()
             ->andReturnUsing(function ($taskObj, $errorMessage) {
                 $taskObj->markAsFailed($errorMessage);
+
                 return true;
             });
         // @phpstan-ignore-next-line
@@ -102,8 +104,8 @@ class N8nQueueSimpleTest extends TestCase
             ->andReturn(true);
 
         // Inject our mocks directly into the job
-        $job->adScriptTaskService = $mockAdScriptTaskService;
-        $job->n8nClient = $mockN8nClient;
+        $job->setAdScriptTaskService($mockAdScriptTaskService);
+        $job->setN8nClient($mockN8nClient);
 
         // Execute the job
         $job->handle();

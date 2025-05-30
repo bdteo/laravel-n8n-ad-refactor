@@ -683,7 +683,7 @@
       "id": 36,
       "title": "Setup CI/CD Pipeline with GitHub Actions",
       "description": "Configure GitHub Actions for automated checks as a final polish step after all core development is complete.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         1,
         2,
@@ -696,6 +696,318 @@
       "priority": "low",
       "details": "Create .github/workflows/ci.yml file. Include jobs for PHP CS Fixer, PHPStan, and Pest tests. Use actions/checkout@v3 and shivammathur/setup-php@v2 actions. Cache Composer dependencies. This task should be completed as a final step after all core development, testing, and documentation work is finished to ensure the CI/CD pipeline validates the completed codebase.",
       "testStrategy": "Push changes to GitHub and verify that the workflow runs successfully against the completed codebase. Ensure all tests pass in the CI environment.",
+      "subtasks": []
+    },
+    {
+      "id": 37,
+      "title": "Fix Mocking Issues in TriggerN8nWorkflowTest",
+      "description": "Resolve Mockery expectation failures in TriggerN8nWorkflowTest",
+      "details": "The TriggerN8nWorkflowTest has multiple failures related to mockery expectations that need to be fixed. These appear to be caused by issues with mocking the AdScriptTaskServiceInterface and N8nClientInterface, particularly in expectations for canProcess(), markAsFailed(), and triggering methods. The tests also have issues with exception assertions and expectations ordering.",
+      "testStrategy": "Run specific test with \n   FAIL  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest\n  ✓ job has correct configuration                                        0.17s  \n  ⨯ handle successfully triggers n8n workflow                            0.03s  \n  ⨯ handle skips when task cannot be processed                           0.02s  \n  ⨯ handle throws exception when marking as processing fails             0.02s  \n  ⨯ handle handles n8n client exception                                  0.02s  \n  ⨯ handle marks task as failed on final attempt with n8n exception      0.02s  \n  ⨯ handle marks task as failed on final attempt with generic exception  0.02s  \n  ✓ failed method marks task as failed                                   0.02s  \n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest > h…  InvalidCountException   \n  Method canProcess(object(App\\Models\\AdScriptTask)) from Mockery_2_App_Contracts_AdScriptTaskServiceInterface should be called\n exactly 1 times but called 0 times.\n\n  at tests/Unit/Jobs/TriggerN8nWorkflowTest.php:295\n    291▕     }\n    292▕ \n    293▕     protected function tearDown(): void\n    294▕     {\n  ➜ 295▕         Mockery::close();\n    296▕         parent::tearDown();\n    297▕     }\n    298▕ }\n    299▕\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest > handle skips when task c…   \n  Failed asserting that exception message 'Received Mockery_2_App_Contracts_AdScriptTaskServiceInterface::markAsFailed(), but no expectations were specified' contains 'Task cannot be processed: invalid status'.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest > handle throws exception…    \n  Failed asserting that exception message 'Received Mockery_2_App_Contracts_AdScriptTaskServiceInterface::markAsFailed(), but no expectations were specified' contains 'Failed to mark task as processing'.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest > handle handles n8n clien…   \n  Failed asserting that exception of type \"App\\Exceptions\\N8nClientException\" is thrown.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest > handle marks task as fai…   \n  Failed asserting that exception of type \"App\\Exceptions\\N8nClientException\" is thrown.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Jobs\\TriggerN8nWorkflowTest > handle marks task as fai…   \n  Failed asserting that exception of type \"Exception\" is thrown.\n\n\n  Tests:    6 failed, 2 passed (11 assertions)\n  Duration: 0.44s after each fix, iterating until all tests pass",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [],
+      "subtasks": []
+    },
+    {
+      "id": 38,
+      "title": "Fix AdScriptTaskService Test Logging Issues",
+      "description": "Resolve logging-related test failures in AdScriptTaskServiceTest",
+      "details": "Several tests in AdScriptTaskServiceTest are failing due to issues with mocking the Log facade. The tests need to be updated to properly handle or mock Log::debug() calls within the service.",
+      "testStrategy": "Run specific tests with failing log expectations: php artisan test tests/Unit/Services/AdScriptTaskServiceTest.php --filter='process_error_result|process_result' to verify fixes",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        37
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 39,
+      "title": "Fix HttpN8nClientTest Mock Expectations",
+      "description": "Resolve failures in HttpN8nClientTest related to HTTP client mocking",
+      "details": "Multiple tests in HttpN8nClientTest are failing due to issues with mocking the Guzzle HTTP client, particularly in expectations for post() method calls and response handling. The test setup needs to be revised to ensure proper configuration of mock expectations and response scenarios.",
+      "testStrategy": "Run \n   FAIL  Tests\\Unit\\Services\\HttpN8nClientTest\n  ✓ implements n8n client interface                                      0.08s  \n  ⨯ constructor validates empty webhook url                              0.02s  \n  ⨯ constructor validates invalid webhook url                            0.01s  \n  ⨯ constructor validates invalid timeout                                0.01s  \n  ⨯ constructor validates invalid retry attempts                         0.03s  \n  ✓ constructor uses config values when not provided                     0.01s  \n  ✓ get webhook url returns configured url                               0.01s  \n  ⨯ trigger workflow sends correct request                               0.02s  \n  ⨯ trigger workflow includes webhook secret in headers                  0.01s  \n  ⨯ trigger workflow handles empty response body                         0.01s  \n  ⨯ trigger workflow handles invalid json response                       0.01s  \n  ⨯ trigger workflow retries on connect exception                        0.01s  \n  ⨯ trigger workflow retries on request exception with response          0.01s  \n  ⨯ trigger workflow retries on request exception without response       0.01s  \n  ⨯ trigger workflow retries on transfer exception                       0.01s  \n  ⨯ trigger workflow succeeds after retry                                0.01s  \n  ✓ is available returns true for successful response                    0.01s  \n  ✓ is available returns true for client error response                  0.01s  \n  ✓ is available returns false for server error response                 0.01s  \n  ✓ is available returns false for transfer exception                    0.01s  \n  ⨯ custom timeout and retry configuration                               0.01s  \n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > constructor validates emp…   \n  Failed asserting that exception of type \"App\\Exceptions\\N8nConfigurationException\" matches expected exception \"App\\Exceptions\\N8nClientException\". Message was: \"Webhook URL is required\" at\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Exceptions/N8nConfigurationException.php:19\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:307\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:55\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/tests/Unit/Services/HttpN8nClientTest.php:60\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:61\n.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > constructor validates inv…   \n  Failed asserting that exception of type \"App\\Exceptions\\N8nConfigurationException\" matches expected exception \"App\\Exceptions\\N8nClientException\". Message was: \"Webhook URL is invalid: not a valid URL\" at\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Exceptions/N8nConfigurationException.php:27\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:311\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:55\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/tests/Unit/Services/HttpN8nClientTest.php:73\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:61\n.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > constructor validates inv…   \n  Failed asserting that exception of type \"App\\Exceptions\\N8nConfigurationException\" matches expected exception \"App\\Exceptions\\N8nClientException\". Message was: \"Timeout is invalid: must be greater than 0\" at\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Exceptions/N8nConfigurationException.php:27\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:324\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:55\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/tests/Unit/Services/HttpN8nClientTest.php:86\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:61\n.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > constructor validates inv…   \n  Failed asserting that exception of type \"App\\Exceptions\\N8nConfigurationException\" matches expected exception \"App\\Exceptions\\N8nClientException\". Message was: \"Retry attempts is invalid: must be at least 1\" at\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Exceptions/N8nConfigurationException.php:27\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:328\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/app/Services/HttpN8nClient.php:55\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/tests/Unit/Services/HttpN8nClientTest.php:100\n/Users/boris/DevEnvs/laravel-n8n-ad-refactor/vendor/laravel/framework/src/Illuminate/Foundation/Testing/TestCase.php:61\n.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow sends co…   \n  Failed asserting that two arrays are equal.\n   Array (\n  -    'status' => 'success'\n  +    'status' => 'processing'\n  +    'success' => true\n  +    'message' => 'Processing started (simulated...ponse)'\n  +    'task_id' => 'task-123'\n  +    'workflow_id' => 'api-test'\n   )\n  \n\n  at tests/Unit/Services/HttpN8nClientTest.php:177\n    173▕             authHeaderValue: $this->testAuthHeaderValue\n    174▕         );\n    175▕         $result = $client->triggerWorkflow($payload);\n    176▕ \n  ➜ 177▕         $this->assertEquals($expectedResponse, $result);\n    178▕     }\n    179▕ \n    180▕     public function test_trigger_workflow_includes_webhook_secret_in_headers(): void\n    181▕     {\n\n  1   tests/Unit/Services/HttpN8nClientTest.php:177\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > tr…  InvalidCountException   \n  Method post('https://test.n8n.io/webhook/test', <Closure===true>) from Mockery_0_GuzzleHttp_Client should be called\n exactly 1 times but called 0 times.\n\n  at tests/Unit/Services/HttpN8nClientTest.php:39\n     35▕     }\n     36▕ \n     37▕     protected function tearDown(): void\n     38▕     {\n  ➜  39▕         Mockery::close();\n     40▕         parent::tearDown();\n     41▕     }\n     42▕ \n     43▕     public function test_implements_n8n_client_interface(): void\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow handles…    \n  Failed asserting that two arrays are equal.\n   Array (\n  +    'success' => true\n  +    'status' => 'processing'\n  +    'message' => 'Processing started (simulated...ponse)'\n  +    'task_id' => 'task-123'\n  +    'workflow_id' => 'api-test'\n   )\n  \n\n  at tests/Unit/Services/HttpN8nClientTest.php:217\n    213▕             authHeaderValue: $this->testAuthHeaderValue\n    214▕         );\n    215▕         $result = $client->triggerWorkflow($payload);\n    216▕ \n  ➜ 217▕         $this->assertEquals([], $result);\n    218▕     }\n    219▕ \n    220▕     public function test_trigger_workflow_handles_invalid_json_response(): void\n    221▕     {\n\n  1   tests/Unit/Services/HttpN8nClientTest.php:217\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow handles…    \n  Failed asserting that two arrays are equal.\n   Array (\n  +    'success' => true\n  +    'status' => 'processing'\n  +    'message' => 'Processing started (simulated...ponse)'\n  +    'task_id' => 'task-123'\n  +    'workflow_id' => 'api-test'\n   )\n  \n\n  at tests/Unit/Services/HttpN8nClientTest.php:237\n    233▕             authHeaderValue: $this->testAuthHeaderValue\n    234▕         );\n    235▕         $result = $client->triggerWorkflow($payload);\n    236▕ \n  ➜ 237▕         $this->assertEquals([], $result);\n    238▕     }\n    239▕ \n    240▕     public function test_trigger_workflow_retries_on_connect_exception(): void\n    241▕     {\n\n  1   tests/Unit/Services/HttpN8nClientTest.php:237\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow retries…    \n  Failed asserting that exception of type \"App\\Exceptions\\N8nClientException\" is thrown.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow retries…    \n  Failed asserting that exception of type \"App\\Exceptions\\N8nClientException\" is thrown.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow retries…    \n  Failed asserting that exception of type \"App\\Exceptions\\N8nClientException\" is thrown.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow retries…    \n  Failed asserting that exception of type \"App\\Exceptions\\N8nClientException\" is thrown.\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > trigger workflow succeeds…   \n  Failed asserting that two arrays are equal.\n   Array (\n  -    'status' => 'success'\n  +    'status' => 'processing'\n  +    'success' => true\n  +    'message' => 'Processing started (simulated...ponse)'\n  +    'task_id' => 'task-123'\n  +    'workflow_id' => 'api-test'\n   )\n  \n\n  at tests/Unit/Services/HttpN8nClientTest.php:370\n    366▕             retryDelays: [0, 0, 0]\n    367▕         );\n    368▕         $result = $client->triggerWorkflow($payload);\n    369▕ \n  ➜ 370▕         $this->assertEquals($expectedResponse, $result);\n    371▕     }\n    372▕ \n    373▕     public function test_is_available_returns_true_for_successful_response(): void\n    374▕     {\n\n  1   tests/Unit/Services/HttpN8nClientTest.php:370\n\n  ────────────────────────────────────────────────────────────────────────────  \n   FAILED  Tests\\Unit\\Services\\HttpN8nClientTest > cu…  InvalidCountException   \n  Method post('https://test.n8n.io/webhook/test', <Closure===true>) from Mockery_0_GuzzleHttp_Client should be called\n exactly 1 times but called 0 times.\n\n  at tests/Unit/Services/HttpN8nClientTest.php:39\n     35▕     }\n     36▕ \n     37▕     protected function tearDown(): void\n     38▕     {\n  ➜  39▕         Mockery::close();\n     40▕         parent::tearDown();\n     41▕     }\n     42▕ \n     43▕     public function test_implements_n8n_client_interface(): void\n\n\n  Tests:    14 failed, 7 passed (22 assertions)\n  Duration: 0.41s to verify all HTTP client mocking issues are fixed",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        37
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 40,
+      "title": "Fix Exception Type Mismatches",
+      "description": "Resolve exception type mismatches in HttpN8nClientTest",
+      "details": "Several tests in HttpN8nClientTest expect N8nClientException but receive N8nConfigurationException. The tests need to be updated to either expect the correct exception type or modify the implementation to throw the expected exception type. Review exception hierarchy and adjust tests accordingly.",
+      "testStrategy": "Run validation tests in HttpN8nClientTest to ensure proper exception handling: php artisan test tests/Unit/Services/HttpN8nClientTest.php --filter='constructor_validates'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        39
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 41,
+      "title": "Fix AdScript Result Processing Response Format",
+      "description": "Resolve response format mismatches in AdScriptResultProcessingTest",
+      "details": "Several tests in AdScriptResultProcessingTest expect specific response formats and status codes that don't match what the application is returning. Particularly, there are issues with expected status code 422 but receiving 200 for non-idempotent request handling. Either the tests or the implementation needs to be updated for consistent handling of idempotency violations.",
+      "testStrategy": "Run specific failing tests to verify fixes: php artisan test tests/Feature/AdScriptResultProcessingTest.php --filter='rejects_non_idemp|rejects_success|rejects_error'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        38
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 42,
+      "title": "Fix Rate Limiting Issues in Tests",
+      "description": "Resolve rate limiting failures in feature and integration tests",
+      "details": "Several feature and integration tests are failing with 429 status codes due to rate limiting. The tests need to be updated to either bypass rate limiting during testing or properly handle rate limited responses. This affects tests in AdScriptIntegrationTest and SecurityValidationTest.",
+      "testStrategy": "Run the specific failing tests with proper rate limiting bypass: php artisan test tests/Feature/AdScript/SecurityValidationTest.php tests/Feature/AdScriptIntegrationTest.php",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        41
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 43,
+      "title": "Fix Integration Test Data and Expectations",
+      "description": "Resolve data mismatches and expectations in integration tests",
+      "details": "AdScriptIntegrationTest contains several failures related to data mismatches and exception expectations. The test data and assertions need to be updated to match the actual application behavior, particularly for error messages. This task also includes addressing job validation in AdScriptSubmissionTest which fails to assert proper job queuing.",
+      "testStrategy": "Run the specific tests after each fix: php artisan test tests/Feature/AdScriptIntegrationTest.php tests/Feature/AdScriptSubmissionTest.php",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        42
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 44,
+      "title": "Fix canProcess() and markAsProcessing() mock expectations",
+      "description": "Correct service mock expectations in basic workflow test cases",
+      "details": "Update the first set of tests in TriggerN8nWorkflowTest to correctly set up and verify expectations for canProcess() and markAsProcessing() methods. Specifically address the 'handle successfully triggers' and 'handle skips when task cannot be processed' test cases where expectations aren't being met.",
+      "testStrategy": "Run the first two failing tests only: php artisan test tests/Unit/Jobs/TriggerN8nWorkflowTest.php --filter='handle_successfully|handle_skips'",
+      "status": "done",
+      "priority": "medium",
+      "dependencies": [
+        37
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 45,
+      "title": "Fix exception assertions in TriggerN8nWorkflow tests",
+      "description": "Correct exception type assertions and mocks in the job test",
+      "details": "Fix the tests that verify exception handling in TriggerN8nWorkflow. These tests are failing because they expect specific exceptions to be thrown (N8nClientException and Exception) but either the exceptions aren't being thrown or they're being caught internally. Update the mocks to properly throw the expected exceptions and ensure the test assertions are correctly structured.",
+      "testStrategy": "Run the exception handling tests: php artisan test tests/Unit/Jobs/TriggerN8nWorkflowTest.php --filter='n8n_client_exception|marks_task_as_failed'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        37
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 46,
+      "title": "Fix markAsFailed() expectations in TriggerN8nWorkflow tests",
+      "description": "Fix mock expectations for markAsFailed method calls",
+      "details": "Several tests in TriggerN8nWorkflowTest expect the markAsFailed method to be called with specific parameters but are receiving 'expectations not specified' errors. Properly configure the mock's expectations for this method, ensuring it's set up correctly for each test case where it's used.",
+      "testStrategy": "Run the tests that expect markAsFailed to be called: php artisan test tests/Unit/Jobs/TriggerN8nWorkflowTest.php --filter='throws_exception|skips_when'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        37
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 47,
+      "title": "Mock Log facade in AdScriptTaskServiceTest",
+      "description": "Set up proper Log facade mocking in AdScriptTaskServiceTest",
+      "details": "The Log facade isn't being properly mocked, causing tests to fail with 'no expectations were specified' errors for Log::debug() calls. Update the test setup to properly mock the Log facade using Facade::shouldReceive or Mockery to handle these calls during test execution.",
+      "testStrategy": "Run tests with Log mocking issues: php artisan test tests/Unit/Services/AdScriptTaskServiceTest.php --filter='process_error_result'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        38
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 48,
+      "title": "Create logging test helper trait for services",
+      "description": "Implement a reusable trait for mocking logs in service tests",
+      "details": "Create a test helper trait that can be used across service tests to consistently mock the Log facade and avoid repetition. The trait should provide methods to set up log expectations, ignore log calls, or verify specific log messages were recorded.",
+      "testStrategy": "Apply the trait to AdScriptTaskServiceTest and run process_error_result and process_result tests to verify it works correctly",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        38
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 49,
+      "title": "Fix Guzzle HTTP client mocks in HttpN8nClientTest",
+      "description": "Correct the setup and configuration of Guzzle mock objects",
+      "details": "The HttpN8nClientTest has several failing tests due to incorrect mock setup for the Guzzle HTTP client. Fix the mocking structure to properly handle method expectations, especially for the post() method, and ensure the mock is injected correctly into the service.",
+      "testStrategy": "Run the client mocking tests: php artisan test tests/Unit/Services/HttpN8nClientTest.php --filter='trigger_workflow_sends'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        39
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 50,
+      "title": "Fix response handling in HttpN8nClientTest",
+      "description": "Correct response mocking and assertions in HTTP client tests",
+      "details": "Several tests in HttpN8nClientTest are failing due to mismatches between expected and actual response formats. Update the tests to correctly mock Guzzle responses and adjust the assertions to match the actual response format produced by the client.",
+      "testStrategy": "Run the response handling tests: php artisan test tests/Unit/Services/HttpN8nClientTest.php --filter='handles_empty|handles_invalid'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        39
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 51,
+      "title": "Align exception types in HttpN8nClientTest",
+      "description": "Fix the exception type hierarchy and test expectations",
+      "details": "The tests in HttpN8nClientTest expect N8nClientException but receive N8nConfigurationException. Review the exception hierarchy to determine if N8nConfigurationException should extend N8nClientException, or update the tests to expect the correct exception type. Ensure consistency across the test suite.",
+      "testStrategy": "Run validation tests to verify exception handling: php artisan test tests/Unit/Services/HttpN8nClientTest.php --filter='constructor_validates'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        40
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 52,
+      "title": "Update exception throwing tests in HttpN8nClientTest",
+      "description": "Fix tests that verify exception throwing behaviors",
+      "details": "The tests for exception throwing in the HTTP client aren't working correctly. Update the test methods that verify N8nClientException behavior during retries, connection failures, and other error conditions to properly set up the expectations and assertions.",
+      "testStrategy": "Run the exception throwing tests: php artisan test tests/Unit/Services/HttpN8nClientTest.php --filter='retries_on'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        40
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 53,
+      "title": "Fix idempotency validation in result processing",
+      "description": "Align response status codes for idempotency violations",
+      "details": "The AdScriptResultProcessingTest expects 422 status codes for non-idempotent requests but receives 200 codes. Either update the controller to properly validate idempotency and return 422 for violations, or update the tests to expect the current behavior. Ensure consistency between the implementation and tests.",
+      "testStrategy": "Run idempotency tests: php artisan test tests/Feature/AdScriptResultProcessingTest.php --filter='rejects_non_idemp'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        41
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 54,
+      "title": "Fix state transition validation in result processing",
+      "description": "Correct response status codes for invalid state transitions",
+      "details": "The tests for handling invalid state transitions (e.g., success for a failed task or error for a completed task) expect 422 errors but receive 200 success responses. Update the controller or service to properly validate state transitions and return appropriate errors, or modify the tests to expect the current behavior.",
+      "testStrategy": "Run state transition tests: php artisan test tests/Feature/AdScriptResultProcessingTest.php --filter='rejects_success_result_for_failed|rejects_error_result_for_completed'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        41
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 55,
+      "title": "Fix rate limiting bypass in security validation tests",
+      "description": "Ensure security tests bypass rate limiting",
+      "details": "The security validation tests are failing with 429 rate limit errors instead of the expected 401 unauthorized errors. Update the tests to properly bypass rate limiting or increase the rate limits during testing to ensure the security validation logic is correctly tested.",
+      "testStrategy": "Run security validation tests: php artisan test tests/Feature/AdScript/SecurityValidationTest.php --filter='workflow_with_invalid_webhook_signature'",
+      "status": "done",
+      "priority": "high",
+      "dependencies": [
+        42
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 56,
+      "title": "Fix rate limiting bypass in integration tests",
+      "description": "Ensure integration tests aren't affected by rate limiting",
+      "details": "Several integration tests in AdScriptIntegrationTest are failing with 429 rate limit errors. Update these tests to either use rate limit bypass middleware or create a specific test environment where rate limits are disabled. Ensure that the primary functionality being tested isn't obscured by rate limiting.",
+      "testStrategy": "Run integration tests with rate limiting issues: php artisan test tests/Feature/AdScriptIntegrationTest.php --filter='integration_flow_performance_metrics|complete_integration_flow'",
+      "status": "in-progress",
+      "priority": "high",
+      "dependencies": [
+        42
+      ],
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Examine failing tests and identify rate limiting issues",
+          "description": "Review AdScriptIntegrationTest and identify tests failing with 429 errors",
+          "details": "Run the failing tests and examine logs to understand the exact points where rate limiting is causing failures. Identify which endpoints or services are triggering the rate limits.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 56
+        },
+        {
+          "id": 2,
+          "title": "Implement rate limit bypass mechanism",
+          "description": "Create or implement rate limit bypass middleware for tests",
+          "details": "Develop a middleware solution that can bypass rate limiting specifically during test execution. This should only be active in the testing environment and should not affect production code.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 56
+        },
+        {
+          "id": 3,
+          "title": "Apply solution to integration tests and verify",
+          "description": "Update and verify the integration tests are working correctly",
+          "details": "Apply the rate limit bypass solution to the failing tests and verify they now pass consistently without 429 errors. Ensure the tests are still testing the intended functionality correctly.",
+          "status": "done",
+          "dependencies": [],
+          "parentTaskId": 56
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "title": "Fix job queuing in AdScriptSubmissionTest",
+      "description": "Correct job assertion in submission test",
+      "details": "The 'it_creates_ad_script_task_successfully' test in AdScriptSubmissionTest fails because the expected TriggerN8nWorkflow job is not being pushed to the queue. Fix the test or implementation to ensure the job is properly dispatched and can be verified in the test.",
+      "testStrategy": "Run the specific failing test: php artisan test tests/Feature/AdScriptSubmissionTest.php --filter='it_creates_ad_script_task_successfully'",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [
+        43
+      ],
+      "subtasks": []
+    },
+    {
+      "id": 58,
+      "title": "Align error messages in integration tests",
+      "description": "Correct error message expectations in integration tests",
+      "details": "Several tests in AdScriptIntegrationTest expect specific error messages that don't match what the implementation is returning. Update either the tests to expect the correct messages or modify the implementation to return the expected error messages. Pay particular attention to task status update messages and workflow execution failures.",
+      "testStrategy": "Run the integration tests with error message assertions: php artisan test tests/Feature/AdScriptIntegrationTest.php --filter='integration_flow_with_n8n_failure|integration_flow_with_database_transaction'",
+      "status": "pending",
+      "priority": "high",
+      "dependencies": [
+        43
+      ],
       "subtasks": []
     }
   ]

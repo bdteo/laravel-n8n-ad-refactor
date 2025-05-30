@@ -27,12 +27,13 @@ class TestRateLimiting
         }
 
         // If we're explicitly not testing rate limiting
-        if (app()->make('testing.rate_limiting') === false) {
+        if (app()->make('testing.rate_limiting') === false || $request->attributes->get('throttle_middleware_disabled') === true) {
             $response = $next($request);
 
             // Add mock rate limit headers
             $response->headers->set('X-RateLimit-Limit', '1000');
             $response->headers->set('X-RateLimit-Remaining', '999');
+            $response->headers->set('X-Rate-Limit-Bypassed', 'true');
 
             return $response;
         }
@@ -58,6 +59,7 @@ class TestRateLimiting
             // Add mock rate limit headers
             $response->headers->set('X-RateLimit-Limit', '1000');
             $response->headers->set('X-RateLimit-Remaining', '999');
+            $response->headers->set('X-Rate-Limit-Bypassed', 'true');
 
             return $response;
         }
@@ -102,7 +104,13 @@ class TestRateLimiting
             return $response;
         }
 
-        // Default behavior
-        return $next($request);
+        // Default processing with no rate limiting
+        $response = $next($request);
+
+        // Add mock rate limit headers for consistency
+        $response->headers->set('X-RateLimit-Limit', '1000');
+        $response->headers->set('X-RateLimit-Remaining', '999');
+
+        return $response;
     }
 }

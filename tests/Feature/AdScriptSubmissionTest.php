@@ -53,8 +53,12 @@ class AdScriptSubmissionTest extends TestCase
             'status' => 'pending',
         ]);
 
-        // Verify job was dispatched
-        Queue::assertPushed(TriggerN8nWorkflow::class);
+        // Verify that the job was dispatched with the correct task
+        Queue::assertPushed(TriggerN8nWorkflow::class, function ($job) use ($payload) {
+            return $job->task instanceof AdScriptTask
+                && $job->task->reference_script === $payload['reference_script']
+                && $job->task->outcome_description === $payload['outcome_description'];
+        });
     }
 
     public function test_it_validates_required_fields(): void

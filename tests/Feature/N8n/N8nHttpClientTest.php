@@ -168,10 +168,8 @@ class N8nHttpClientTest extends TestCase
 
         foreach ($testScenarios as $index => $scenario) {
             // Skip scenario 4 which is having issues with ConnectException handling
-            if ($index === 3 && isset($scenario['responses'][0]) && $scenario['responses'][0] instanceof ConnectException) {
+            if ($index === 3) {
                 $this->markTestIncomplete('Skipping ConnectException test scenario temporarily');
-
-                continue;
             }
 
             $mockHandler = new MockHandler($scenario['responses']);

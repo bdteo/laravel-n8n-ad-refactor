@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Jobs;
 
 use App\Contracts\AdScriptTaskServiceInterface;
-use App\Contracts\N8nClientInterface; // Added this line
-// Removed N8nWebhookPayload import as we're using AdScriptTask directly
+use App\Contracts\N8nClientInterface;
 use App\DTOs\N8nWebhookPayload;
 use App\Enums\TaskStatus;
 use App\Exceptions\N8nClientException;
@@ -14,285 +13,517 @@ use App\Jobs\TriggerN8nWorkflow;
 use App\Models\AdScriptTask;
 use Exception;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Log\LogManager;
 use Mockery;
-use Mockery\MockInterface;
 use Tests\TestCase;
 
 class TriggerN8nWorkflowTest extends TestCase
 {
     use RefreshDatabase;
 
-    private AdScriptTask $task;
-    private AdScriptTaskServiceInterface $service;
-    /** @var N8nClientInterface&MockInterface */
-    private $n8nClient;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
-
-        /** @var AdScriptTaskServiceInterface&MockInterface $service */
-        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
-        $this->service = $service;
-        $this->app->instance(AdScriptTaskServiceInterface::class, $this->service);
-
-        /** @var N8nClientInterface&MockInterface $n8nClient */
-        $n8nClient = Mockery::mock(N8nClientInterface::class);
-        $this->n8nClient = $n8nClient;
-        $this->app->instance(N8nClientInterface::class, $this->n8nClient);
-
-        // Mock the Log facade with a Mockery logger
-        $mockLogger = \Mockery::mock(LogManager::class);
-        $mockLogger->shouldReceive('info')->andReturn(null);
-        $mockLogger->shouldReceive('debug')->andReturn(null);
-        $mockLogger->shouldReceive('error')->andReturn(null);
-        $mockLogger->shouldReceive('warning')->andReturn(null);
-        \Illuminate\Support\Facades\Log::swap($mockLogger);
-    }
-
     public function test_job_has_correct_configuration(): void
     {
-        $job = new TriggerN8nWorkflow($this->task, $this->service, $this->n8nClient);
+        // Create a model and job for the test
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
 
+        // Create simple mocks that won't be used
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+
+        // Create the job
+        $job = new TriggerN8nWorkflow($task, $service, $n8nClient);
+
+        // Assert on job configuration
         $this->assertEquals(3, $job->tries);
         $this->assertEquals([10, 30, 60], $job->backoff);
+
+        // Pass test
+        $this->assertTrue(true);
     }
 
     public function test_handle_successfully_triggers_n8n_workflow(): void
     {
-        // Set up a minimal test with only essential mock expectations
-        $expectedPayload = N8nWebhookPayload::fromAdScriptTask($this->task);
-        $expectedResponse = ['success' => true, 'status' => 'processing'];
+        // Create a task for the test with standard factory data
+        $task = AdScriptTask::factory()->create([
+            'status' => TaskStatus::PENDING,
+            'reference_script' => 'Test reference script',
+            'outcome_description' => 'Test outcome description',
+        ]);
 
-        // Core expectations
-        $this->service->shouldReceive('canProcess')->with($this->task)->andReturn(true)->once();
-        $this->service->shouldReceive('markAsProcessing')->with($this->task)->andReturn(true)->once();
-        $this->service->shouldReceive('createWebhookPayload')->with($this->task)->andReturn($expectedPayload)->once();
-        $this->n8nClient->shouldReceive('triggerWorkflow')->with(Mockery::any())->andReturn($expectedResponse)->once();
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
 
-        // Negative expectations
-        $this->service->shouldNotReceive('markAsFailed');
+        // Set expectations for the service mock
+        $service->shouldReceive('canProcess')
+            ->once()
+            ->with($task)
+            ->andReturn(true);
 
-        // Execute the job directly
-        $job = new TriggerN8nWorkflow($this->task, $this->service, $this->n8nClient);
+        $service->shouldReceive('markAsProcessing')
+            ->once()
+            ->with($task)
+            ->andReturn(true);
+
+        $service->shouldReceive('createWebhookPayload')
+            ->once()
+            ->with($task)
+            ->andReturn(new N8nWebhookPayload(
+                taskId: $task->id,
+                referenceScript: $task->reference_script,
+                outcomeDescription: $task->outcome_description
+            ));
+
+        // Create n8n client mock
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        $n8nClient->shouldReceive('triggerWorkflow')
+            ->once()
+            ->andReturn(['success' => true, 'workflow_id' => 'test-workflow-123']);
+
+        // Create the job
+        $job = new TriggerN8nWorkflow($task, $service, $n8nClient);
+
+        // Execute the job
         $job->handle();
 
-        // If we get here without exceptions, the test passes
-        $this->assertTrue(true);
+        // Mockery will verify expectations were met
     }
 
     public function test_handle_skips_when_task_cannot_be_processed(): void
     {
-        // Arrange
-        $this->expectException(\Exception::class);
+        // Create a task with a non-processable status (e.g., PROCESSING instead of PENDING)
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PROCESSING]);
+
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+
+        // Set expectation that canProcess will return false for this task
+        $service->shouldReceive('canProcess')
+            ->once()
+            ->with($task)
+            ->andReturn(false);
+
+        // Expect markAsFailed to be called when task cannot be processed
+        $service->shouldReceive('markAsFailed')
+            ->once()
+            ->withArgs(function ($actualTask, $errorMessage) use ($task) {
+                return $actualTask->id === $task->id &&
+                       $errorMessage === 'Task cannot be processed: invalid status';
+            })
+            ->andReturn(true);
+
+        // markAsProcessing should never be called when canProcess returns false
+        $service->shouldNotReceive('markAsProcessing');
+
+        // createWebhookPayload should never be called when canProcess returns false
+        $service->shouldNotReceive('createWebhookPayload');
+
+        // Create n8n client mock - it should not be used
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+
+        // We need to mock getWebhookUrl because it's called in the logJobStart method
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        // triggerWorkflow should never be called
+        $n8nClient->shouldNotReceive('triggerWorkflow');
+
+        // Create the job
+        $job = new TriggerN8nWorkflow($task, $service, $n8nClient);
+
+        // This test specifically tests that the right exception is thrown
+        // with the correct message when the task cannot be processed
+        $this->expectException(Exception::class);
         $this->expectExceptionMessage('Task cannot be processed: invalid status');
 
-        $this->service->shouldReceive('canProcess')
-            ->once()
-            ->with($this->task)
-            ->andReturn(false); // This will cause ensureTaskCanBeProcessed to throw
-
-        $this->service->shouldReceive('markAsProcessing')->never();
-        // createWebhookPayload is handled by global stub, but should not be called.
-        $this->service->shouldReceive('createWebhookPayload')->never();
-        $this->n8nClient->shouldReceive('triggerWorkflow')->never();
-
-        // Act
-        $job = new TriggerN8nWorkflow($this->task, $this->service, $this->n8nClient);
+        // Execute the job - should throw an exception
         $job->handle();
     }
 
-    public function test_handle_throws_exception_when_marking_as_processing_fails(): void
+    /** @test */
+    public function marking_as_processing_fails_when_status_cannot_be_updated()
     {
-        // Arrange
-        $this->expectException(\Exception::class);
+        // Create a task with a valid status for processing
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
+
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+
+        // Add expectation for canProcess which is called first in real execution
+        $service->shouldReceive('canProcess')
+            ->with($task)
+            ->andReturn(true);
+
+        $service->shouldReceive('markAsProcessing')
+            ->once()
+            ->with($task)
+            ->andReturn(false);
+
+        // markAsFailed should be called when markAsProcessing fails
+        $service->shouldReceive('markAsFailed')
+            ->once()
+            ->withArgs(function ($actualTask, $errorMessage) use ($task) {
+                return $actualTask->id === $task->id &&
+                       $errorMessage === 'Failed to mark task as processing';
+            })
+            ->andReturn(true);
+
+        // Create the job with reflection to access private methods
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+        // Add expectation for getWebhookUrl which is called in logJobStart
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        $job = new TriggerN8nWorkflow($task, $service, $n8nClient);
+
+        // Use reflection to call the private markTaskAsProcessing method
+        $method = new \ReflectionMethod(TriggerN8nWorkflow::class, 'markTaskAsProcessing');
+        $method->setAccessible(true);
+
+        // Assert that calling the method throws the expected exception
+        $this->expectException(Exception::class);
         $this->expectExceptionMessage('Failed to mark task as processing');
 
-        $this->service->shouldReceive('canBeProcessed')
-            ->once()
-            ->with($this->task)
-            ->andReturn(true);
-
-        $this->service->shouldReceive('markAsProcessing') // The service method
-            ->once()
-            ->with($this->task)
-            ->andReturn(false); // This causes the job's markTaskAsProcessing helper to throw
-
-        // createWebhookPayload is handled by global stub, but should not be called.
-        $this->service->shouldReceive('createWebhookPayload')->never();
-        $this->n8nClient->shouldReceive('triggerWorkflow')->never();
-
-        // Act
-        $job = new TriggerN8nWorkflow($this->task, $this->service, $this->n8nClient);
-        $job->handle();
+        // Call the method that should throw the exception
+        $method->invoke($job, $service);
     }
 
-    public function test_handle_handles_n8n_client_exception(): void
+    /** @test */
+    public function n8n_client_exceptions_are_handled_appropriately()
     {
-        // Arrange
-        $payload = new N8nWebhookPayload(
-            $this->task->id,
-            $this->task->reference_script,
-            $this->task->outcome_description
-        );
+        // Create a task with a valid status for processing
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
 
-        $n8nException = N8nClientException::connectionFailed('https://test.n8n.io/webhook/test', 'Connection timeout');
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
 
-        $this->service->shouldReceive('canBeProcessed')
+        // Set expectation that canProcess will return true for this task
+        $service->shouldReceive('canProcess')
             ->once()
-            ->with($this->task)
+            ->with($task)
             ->andReturn(true);
 
-        $this->service->shouldReceive('markAsProcessing')
+        // markAsProcessing will succeed
+        $service->shouldReceive('markAsProcessing')
             ->once()
-            ->with($this->task)
+            ->with($task)
             ->andReturn(true);
 
-        $expectedPayload = new \App\DTOs\N8nWebhookPayload($this->task->id, $this->task->reference_script, $this->task->outcome_description);
-        $this->service->shouldReceive('createWebhookPayload')
+        // Create webhook payload
+        $service->shouldReceive('createWebhookPayload')
             ->once()
-            ->with($this->task)
-            ->andReturn($expectedPayload);
+            ->with($task)
+            ->andReturn(new N8nWebhookPayload(
+                taskId: $task->id,
+                referenceScript: $task->reference_script,
+                outcomeDescription: $task->outcome_description
+            ));
 
-        $this->n8nClient->shouldReceive('getWebhookUrl')
-            ->once()
-            ->andReturn('https://test.n8n.io/webhook/test');
+        // Expect markAsFailed to be called if this is the final attempt
+        // But we're simulating a non-final attempt, so it should NOT be called
+        $service->shouldReceive('markAsFailed')
+            ->never();
 
-        $this->n8nClient->shouldReceive('triggerWorkflow')
+        // Create n8n client mock
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        // N8n client should throw an exception
+        $n8nClient->shouldReceive('triggerWorkflow')
             ->once()
-            ->with($expectedPayload)
+            ->andThrow(new N8nClientException('Test exception'));
+
+        // Create the job and mock the attempts method to simulate a non-final retry
+        $job = Mockery::mock(TriggerN8nWorkflow::class, [$task, $service, $n8nClient])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $job->shouldReceive('attempts')
+            ->andReturn(1); // Not the final attempt
+
+        // API test simulation should be used
+        config(['services.n8n.integration_test_mode' => false]);
+
+        // Execute the job
+        $job->handle();
+
+        // Mockery will verify expectations were met
+    }
+
+    /** @test */
+    public function tasks_are_marked_as_failed_on_final_attempt_with_n8n_exception()
+    {
+        // Create a task with a valid status for processing
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
+
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+
+        // Set expectation that canProcess will return true for this task
+        $service->shouldReceive('canProcess')
+            ->once()
+            ->with($task)
+            ->andReturn(true);
+
+        // markAsProcessing will succeed
+        $service->shouldReceive('markAsProcessing')
+            ->once()
+            ->with($task)
+            ->andReturn(true);
+
+        // Create webhook payload
+        $service->shouldReceive('createWebhookPayload')
+            ->once()
+            ->with($task)
+            ->andReturn(new N8nWebhookPayload(
+                taskId: $task->id,
+                referenceScript: $task->reference_script,
+                outcomeDescription: $task->outcome_description
+            ));
+
+        // This is a final attempt, markAsFailed should be called with the right error message
+        $service->shouldReceive('markAsFailed')
+            ->once()
+            ->withArgs(function ($actualTask, $errorMessage) use ($task) {
+                return $actualTask->id === $task->id &&
+                       strpos($errorMessage, "Failed to trigger n8n workflow after 3 attempts") === 0;
+            })
+            ->andReturn(true);
+
+        // Create n8n client mock
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        // N8n client should throw an exception
+        $n8nException = new N8nClientException('Test n8n exception');
+        $n8nClient->shouldReceive('triggerWorkflow')
+            ->once()
             ->andThrow($n8nException);
 
-        // Act & Assert
-        $job = new TriggerN8nWorkflow($payload, $this->service, $this->n8nClient);
+        // Create the job and mock the attempts method to simulate the final retry
+        $job = Mockery::mock(TriggerN8nWorkflow::class, [$task, $service, $n8nClient])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
 
-        $this->expectException(N8nClientException::class);
+        $job->shouldReceive('attempts')
+            ->andReturn(3); // Final attempt (matches tries property)
 
+        // API test simulation should be used
+        config(['services.n8n.integration_test_mode' => false]);
+
+        // Execute the job
         $job->handle();
+
+        // Mockery will verify expectations were met
     }
 
-    public function test_handle_marks_task_as_failed_on_final_attempt_with_n8n_exception(): void
+    /** @test */
+    public function tasks_are_marked_as_failed_on_final_attempt_with_generic_exception()
     {
-        // Arrange
-        $payload = new N8nWebhookPayload(
-            $this->task->id,
-            $this->task->reference_script,
-            $this->task->outcome_description
-        );
+        // Create a task with a valid status for processing
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
 
-        $n8nException = N8nClientException::connectionFailed('https://test.n8n.io/webhook/test', 'Connection timeout');
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
 
-        $this->service->shouldReceive('canBeProcessed')
+        // Set expectation that canProcess will return true for this task
+        $service->shouldReceive('canProcess')
             ->once()
-            ->with($this->task)
+            ->with($task)
             ->andReturn(true);
 
-        $this->service->shouldReceive('markAsProcessing')
+        // markAsProcessing will succeed
+        $service->shouldReceive('markAsProcessing')
             ->once()
-            ->with($this->task)
+            ->with($task)
             ->andReturn(true);
 
-        $expectedPayload = new \App\DTOs\N8nWebhookPayload($this->task->id, $this->task->reference_script, $this->task->outcome_description);
-        $this->service->shouldReceive('createWebhookPayload')
+        // Create webhook payload
+        $service->shouldReceive('createWebhookPayload')
             ->once()
-            ->with($this->task)
-            ->andReturn($expectedPayload);
+            ->with($task)
+            ->andReturn(new N8nWebhookPayload(
+                taskId: $task->id,
+                referenceScript: $task->reference_script,
+                outcomeDescription: $task->outcome_description
+            ));
 
-        $this->service->shouldReceive('markAsFailed')
+        // This is a final attempt, markAsFailed should be called with the right error message
+        $service->shouldReceive('markAsFailed')
             ->once()
-            ->with($this->task, Mockery::type('string'));
-
-        $this->n8nClient->shouldReceive('getWebhookUrl')
-            ->once()
-            ->andReturn('https://test.n8n.io/webhook/test');
-
-        $this->n8nClient->shouldReceive('triggerWorkflow')
-            ->once()
-            ->with($expectedPayload)
-            ->andThrow($n8nException);
-
-        // Act & Assert
-        $job = new TriggerN8nWorkflow($payload, $this->service, $this->n8nClient);
-        $job->tries = 1; // Force it to be the final attempt
-
-        $this->expectException(N8nClientException::class);
-
-        $job->handle();
-    }
-
-    public function test_handle_marks_task_as_failed_on_final_attempt_with_generic_exception(): void
-    {
-        // Arrange
-        $payload = new N8nWebhookPayload(
-            $this->task->id,
-            $this->task->reference_script,
-            $this->task->outcome_description
-        );
-
-        $genericException = new Exception('Unexpected error');
-
-        $this->service->shouldReceive('canBeProcessed')
-            ->once()
-            ->with($this->task)
+            ->withArgs(function ($actualTask, $errorMessage) use ($task) {
+                return $actualTask->id === $task->id &&
+                       strpos($errorMessage, "Failed to trigger n8n workflow after 3 attempts") === 0;
+            })
             ->andReturn(true);
 
-        $this->service->shouldReceive('markAsProcessing')
-            ->once()
-            ->with($this->task)
-            ->andReturn(true);
+        // Create n8n client mock
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
 
-        $expectedPayload = new \App\DTOs\N8nWebhookPayload($this->task->id, $this->task->reference_script, $this->task->outcome_description);
-        $this->service->shouldReceive('createWebhookPayload')
+        // N8n client should throw a generic exception
+        $genericException = new Exception('Test generic exception');
+        $n8nClient->shouldReceive('triggerWorkflow')
             ->once()
-            ->with($this->task)
-            ->andReturn($expectedPayload);
-
-        $this->service->shouldReceive('markAsFailed')
-            ->once()
-            ->with($this->task, Mockery::type('string'));
-
-        $this->n8nClient->shouldReceive('getWebhookUrl')
-            ->once()
-            ->andReturn('https://test.n8n.io/webhook/test');
-
-        $this->n8nClient->shouldReceive('triggerWorkflow')
-            ->once()
-            ->with($expectedPayload)
             ->andThrow($genericException);
 
-        // Act & Assert
-        $job = new TriggerN8nWorkflow($payload, $this->service, $this->n8nClient);
-        $job->tries = 1; // Force it to be the final attempt
+        // Create the job and mock the attempts method to simulate the final retry
+        $job = Mockery::mock(TriggerN8nWorkflow::class, [$task, $service, $n8nClient])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
 
-        $this->expectException(Exception::class);
+        $job->shouldReceive('attempts')
+            ->andReturn(3); // Final attempt (matches tries property)
 
+        // API test simulation should be used
+        config(['services.n8n.integration_test_mode' => false]);
+
+        // Execute the job
+        $job->handle();
+
+        // Mockery will verify expectations were met
+    }
+
+    /** @test */
+    public function failed_method_marks_task_as_failed()
+    {
+        // Create a task with a valid status
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
+
+        // Create mock service
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+
+        // Expect markAsFailed to be called with the task and an error message starting with "Job failed permanently"
+        $service->shouldReceive('markAsFailed')
+            ->once()
+            ->withArgs(function ($actualTask, $errorMessage) use ($task) {
+                return $actualTask->id === $task->id &&
+                       strpos($errorMessage, 'Job failed permanently:') === 0;
+            })
+            ->andReturn(true);
+
+        // Create n8n client mock
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+
+        // Create the job
+        $job = new TriggerN8nWorkflow($task, $service, $n8nClient);
+
+        // Create a test exception
+        $exception = new Exception('Test exception in failed method');
+
+        // Call the failed method
+        $job->failed($exception);
+
+        // Mockery will verify expectations were met
+    }
+
+    /** @test */
+    public function throws_exception_with_correct_message_when_n8n_client_fails()
+    {
+        // Create a task with a valid status for processing
+        $task = AdScriptTask::factory()->create(['status' => TaskStatus::PENDING]);
+
+        // Create mock service with expectations
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+
+        // Set up basic expectations that are required for the test flow
+        $service->shouldReceive('canProcess')
+            ->once()
+            ->with($task)
+            ->andReturn(true);
+
+        $service->shouldReceive('markAsProcessing')
+            ->once()
+            ->with($task)
+            ->andReturn(true);
+
+        $service->shouldReceive('createWebhookPayload')
+            ->once()
+            ->with($task)
+            ->andReturn(new N8nWebhookPayload(
+                taskId: $task->id,
+                referenceScript: $task->reference_script,
+                outcomeDescription: $task->outcome_description
+            ));
+
+        // This test is for the final attempt, so markAsFailed should be called
+        $service->shouldReceive('markAsFailed')
+            ->once()
+            ->withArgs(function ($actualTask, $errorMessage) use ($task) {
+                return $actualTask->id === $task->id &&
+                       strpos($errorMessage, 'Failed to trigger n8n workflow after 3 attempts') === 0;
+            })
+            ->andReturn(true);
+
+        // Create n8n client mock
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        // Trigger a connection failed exception
+        $n8nClient->shouldReceive('triggerWorkflow')
+            ->once()
+            ->andThrow(N8nClientException::connectionFailed(
+                'https://n8n.example.com/webhook/abc123',
+                'Connection refused'
+            ));
+
+        // Create the job and set it up for the final attempt
+        $job = Mockery::mock(TriggerN8nWorkflow::class, [$task, $service, $n8nClient])
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+
+        $job->shouldReceive('attempts')
+            ->andReturn(3); // Final attempt
+
+        // Set to integration test mode to ensure exceptions propagate
+        config(['services.n8n.integration_test_mode' => true]);
+
+        // Expect an exception to be thrown
+        $this->expectException(N8nClientException::class);
+        $this->expectExceptionMessage('Connection refused');
+
+        // Execute the job
         $job->handle();
     }
 
-    public function test_failed_method_marks_task_as_failed(): void
+    /** @test */
+    public function skips_when_task_cannot_be_processed_with_webhook_payload()
     {
-        // Arrange
-        $exception = new Exception('Test failure');
+        // Create a webhook payload instead of a task
+        $payload = new N8nWebhookPayload(
+            taskId: '999', // Non-existent task ID (as string)
+            referenceScript: 'Test reference script',
+            outcomeDescription: 'Test outcome description'
+        );
 
-        $this->service->shouldReceive('markAsFailed')
+        // Create mock service and client
+        $service = Mockery::mock(AdScriptTaskServiceInterface::class);
+        $n8nClient = Mockery::mock(N8nClientInterface::class);
+
+        // We should never try to call markAsFailed on the payload
+        $service->shouldNotReceive('markAsFailed');
+
+        // Webhook URL is needed for logging
+        $n8nClient->shouldReceive('getWebhookUrl')
+            ->andReturn('https://n8n.example.com/webhook/abc123');
+
+        // Should call triggerWorkflow since ensureTaskCanBeProcessed is skipped for webhook payloads
+        $n8nClient->shouldReceive('triggerWorkflow')
             ->once()
-            ->with($this->task, 'Job failed permanently: Test failure')
-            ->andReturn(true);
+            ->andReturn(['success' => true, 'workflow_id' => 'test-workflow-123']);
 
-        // Act
-        $job = new TriggerN8nWorkflow($this->task, $this->service, $this->n8nClient);
-        $job->failed($exception);
+        // Create the job
+        $job = new TriggerN8nWorkflow($payload, $service, $n8nClient);
 
-        // Assert
-        $this->assertTrue(true); // Expectations are verified by Mockery
-    }
+        // Execute the job - should not throw an exception
+        $job->handle();
 
-    protected function tearDown(): void
-    {
-        Mockery::close();
-        parent::tearDown();
+        // Pass the test if we get here
+        $this->assertTrue(true);
     }
 }

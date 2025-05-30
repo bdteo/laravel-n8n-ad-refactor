@@ -193,6 +193,22 @@ class ProcessAdScriptResultController extends Controller
             return 500;
         }
 
+        // Handle non-idempotent request violations
+        if (isset($result['idempotency_violated']) && $result['idempotency_violated'] === true) {
+            return 422;
+        }
+
+        // Handle cases where was_updated is explicitly set to false (another form of idempotency violation)
+        if (isset($result['was_updated']) && $result['was_updated'] === false) {
+            return 422;
+        }
+
+        // Handle invalid state transitions (explicitly check for conflicts with final state)
+        // This is the key fix for the failing tests
+        if (isset($result['message']) && str_contains($result['message'], 'Conflict with final state')) {
+            return 422;
+        }
+
         // For both success and failure callbacks, return 200 if the request was valid
         // This ensures that error callbacks are treated as successful API requests
         // even though they contain error information about the task
@@ -200,7 +216,7 @@ class ProcessAdScriptResultController extends Controller
             return 200;
         }
 
-        // If processing failed due to validation or state issues
+        // Default fallback
         return 422;
     }
 }

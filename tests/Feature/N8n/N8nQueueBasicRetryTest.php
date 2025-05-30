@@ -96,8 +96,8 @@ class N8nQueueBasicRetryTest extends TestCase
             });
 
         // Inject our mocks directly into the job
-        $job->adScriptTaskService = $mockAdScriptTaskService;
-        $job->n8nClient = $mockN8nClient;
+        $job->setAdScriptTaskService($mockAdScriptTaskService);
+        $job->setN8nClient($mockN8nClient);
 
         // Execute the job and expect an exception
         try {

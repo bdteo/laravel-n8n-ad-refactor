@@ -111,7 +111,7 @@ trait HandlesApiErrors
     {
         $message = app()->environment('production')
             ? 'An unexpected error occurred. Please try again later.'
-            : $exception->getMessage();
+            : $this->getSafeExceptionMessage($exception);
 
         return response()->json([
             'error' => true,
@@ -119,6 +119,27 @@ trait HandlesApiErrors
             'type' => 'server_error',
             'timestamp' => now()->toISOString(),
         ], 500);
+    }
+
+    /**
+     * Get a safe exception message that won't cause serialization issues.
+     */
+    private function getSafeExceptionMessage(\Throwable $exception): string
+    {
+        try {
+            // Try to get the message directly
+            $message = $exception->getMessage();
+
+            // If the message contains 'Serialization of', it's likely a serialization error
+            if (str_contains($message, 'Serialization of')) {
+                return 'A serialization error occurred. Please check your data and try again.';
+            }
+
+            return $message;
+        } catch (\Throwable $e) {
+            // If we can't get the message, return a generic error
+            return 'An error occurred while processing your request.';
+        }
     }
 
     /**

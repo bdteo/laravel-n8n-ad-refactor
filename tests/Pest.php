@@ -27,9 +27,7 @@ uses(
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+// Custom expectations can be defined here if needed
 
 /*
 |--------------------------------------------------------------------------

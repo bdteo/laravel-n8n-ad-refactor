@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Services\AuditLogService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -9,6 +10,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+
+use function optional;
+
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -62,32 +66,47 @@ class Handler extends ExceptionHandler
     /**
      * Log exception with enhanced context information.
      */
-    private function logExceptionWithContext(Throwable $exception): void
+    protected function logExceptionWithContext(Throwable $exception): void
     {
+        // Skip logging in test environment
+        if (app()->environment('testing')) {
+            return;
+        }
+
         $context = [
-            'exception_class' => get_class($exception),
+            'exception' => get_class($exception),
             'message' => $exception->getMessage(),
-            'file' => $exception->getFile(),
+            'code' => $exception->getCode(),
+            'file' => str_replace(base_path(), '', $exception->getFile()),
             'line' => $exception->getLine(),
+            'url' => request()->fullUrl(),
+            'method' => request()->method(),
+            'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+            'user_id' => auth()->id(),
             'trace' => $this->getFilteredTrace($exception),
         ];
 
-        // Add request context
+        // Add request data if available, but be careful with sensitive information
         $request = request();
-        $context['request'] = [
-            'url' => $request->fullUrl(),
-            'method' => $request->method(),
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'headers' => $this->getFilteredHeaders($request),
-        ];
+        if ($request->hasHeader('Content-Type') &&
+            str_contains($request->header('Content-Type'), 'application/json')) {
+            $context['request_data'] = $request->except([
+                'password', 'password_confirmation', 'token', 'api_token', 'credit_card',
+            ]);
+        }
 
-        // Add user context if authenticated - safely check auth to avoid test failures
+        // Add auth information if available
         try {
             if (auth()->check()) {
-                $context['user'] = [
-                    'id' => auth()->id(),
-                    'email' => auth()->user()->email ?? 'unknown',
+                $context['auth'] = [
+                    'user_id' => auth()->id(),
+                    'authenticated' => true,
+                    'is_admin' => optional(auth()->user())->isAdmin() ?? false,
+                ];
+            } else {
+                $context['auth'] = [
+                    'authenticated' => false,
                 ];
             }
         } catch (\Throwable $e) {
@@ -98,9 +117,31 @@ class Handler extends ExceptionHandler
         // Add specific context for custom exceptions
         $context = array_merge($context, $this->getExceptionSpecificContext($exception));
 
-        // Use appropriate log channel based on exception type
-        $channel = $this->getLogChannelForException($exception);
-        Log::channel($channel)->error('Exception occurred', $context);
+        // Use AuditLogService to log the exception
+        try {
+            $auditLogService = app(AuditLogService::class);
+            $auditLogService->logError(
+                'Exception occurred: ' . $exception->getMessage(),
+                $exception,
+                [
+                    'file' => $context['file'],
+                    'line' => $context['line'],
+                    'url' => $context['url'],
+                    'method' => $context['method'],
+                    'user_id' => $context['user_id'] ?? null,
+                ]
+            );
+        } catch (\Throwable $e) {
+            // If AuditLogService fails, fall back to default logging
+            // but skip in test environment
+            $environment = app()->environment();
+            if ($environment !== 'testing' && $environment !== 'local') {
+                Log::error('Failed to log exception with AuditLogService', [
+                    'original_exception' => $exception->getMessage(),
+                    'logging_error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**
@@ -229,8 +270,12 @@ class Handler extends ExceptionHandler
 
     /**
      * Get appropriate log channel for exception type.
+     *
+     * @internal Kept for future use
+     * @param Throwable $exception
+     * @return string
      */
-    private function getLogChannelForException(Throwable $exception): string
+    protected function getLogChannelForException(Throwable $exception): string
     {
         return match (true) {
             $exception instanceof N8nClientException,
@@ -245,8 +290,12 @@ class Handler extends ExceptionHandler
 
     /**
      * Get filtered request headers (remove sensitive data).
+     *
+     * @internal Kept for future use
+     * @param Request $request
+     * @return array
      */
-    private function getFilteredHeaders(Request $request): array
+    protected function getFilteredHeaders(Request $request): array
     {
         $headers = $request->headers->all();
         $sensitiveHeaders = [

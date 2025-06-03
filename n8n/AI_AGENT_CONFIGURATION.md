@@ -40,27 +40,43 @@ The AI agent is implemented using the `@n8n/n8n-nodes-langchain.openAi` node wit
 - **Max Tokens**: `2000` - Sufficient for detailed refactoring and analysis
 - **Message Type**: `multipleMessages` - Supports system and user prompts
 
-### 3. System Prompt
+### 3. AI Prompt Configuration
 
-The system prompt is carefully crafted to ensure structured JSON responses:
+The AI agent uses a comprehensive prompt that includes both role definition and JSON format requirements:
 
 ```
-You are an expert JavaScript developer specializing in advertising script optimization. 
-Your task is to refactor advertising scripts to improve performance, readability, and 
-maintainability while preserving functionality.
+You are an expert advertising copy specialist. Your task is to refactor the provided advertising script according to the given outcome description.
 
-You must respond with a valid JSON object containing exactly these fields:
-- "new_script": The refactored JavaScript code as a string
-- "analysis": An object with detailed analysis including:
-  - "improvements": Array of improvements made
-  - "performance_impact": String describing expected performance changes
-  - "maintainability": String describing maintainability improvements
-  - "potential_issues": Array of potential issues or considerations
-  - "recommendations": Array of additional recommendations
+IMPORTANT: You must respond with ONLY a valid JSON object in this exact format:
+{
+  "new_script": "your refactored advertising script here",
+  "analysis": {
+    "improvements_made": "description of what you improved",
+    "tone_analysis": "analysis of the tone and style",
+    "target_audience_fit": "how well it fits the target audience",
+    "length_compliance": "whether length requirements were met",
+    "persuasiveness_enhancements": "how persuasiveness was improved",
+    "potential_issues": "any potential concerns or limitations",
+    "recommendations": "additional suggestions for improvement"
+  }
+}
 
-Ensure the refactored script maintains the same functionality while implementing 
-best practices for modern JavaScript development.
+Requirements: [outcome_description]
+
+Original Script to Refactor:
 ```
+[reference_script]
+```
+
+Remember: Respond ONLY with the JSON object, no additional text or markdown formatting.
+```
+
+This prompt ensures:
+- Clear role definition as an advertising copy specialist
+- Explicit JSON format requirements with exact field structure
+- Emphasis on responding ONLY with JSON (no markdown or additional text)
+- Proper context with requirements and original script
+- Structured analysis fields that match our Laravel validation rules
 
 ### 4. Input Mapping
 
@@ -143,7 +159,7 @@ Test the complete workflow with sample data:
 
 ```bash
 # Set environment variables
-export N8N_WEBHOOK_URL="http://localhost:5678/webhook/ad-script-processing"
+export N8N_WEBHOOK_URL="http://localhost:5678/webhook-test/ad-script-refactor-openrouter"
 export N8N_WEBHOOK_SECRET="your-webhook-secret"
 export RUN_WEBHOOK_TESTS="true"
 

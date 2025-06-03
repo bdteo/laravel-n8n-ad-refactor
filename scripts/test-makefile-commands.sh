@@ -44,7 +44,7 @@ REDIS_HOST=127.0.0.1
 REDIS_PASSWORD=null
 REDIS_PORT=6379
 
-N8N_TRIGGER_WEBHOOK_URL=http://localhost:5678/webhook/ad-script-processing
+N8N_TRIGGER_WEBHOOK_URL=http://localhost:5678/webhook-test/ad-script-refactor-openrouter
 N8N_AUTH_HEADER_KEY=X-Laravel-Trigger-Auth
 N8N_AUTH_HEADER_VALUE=a-very-strong-static-secret-laravel-sends-to-n8n
 N8N_CALLBACK_HMAC_SECRET=very-strong-shared-secret-for-hmac-verification

@@ -46,7 +46,7 @@ class RouteServiceProvider extends ServiceProvider
 
         // Result processing hourly limit
         RateLimiter::for('result-processing-hourly', function (Request $request) {
-            return Limit::perHour(500)->by($request->ip());
+            return Limit::perHour(1000)->by($request->ip());
         });
 
         $this->routes(function () {

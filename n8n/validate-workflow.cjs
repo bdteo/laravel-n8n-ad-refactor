@@ -213,7 +213,7 @@ class WorkflowValidator {
             this.errors.push('Webhook trigger has incorrect type');
         }
 
-        if (!node.parameters || node.parameters.path !== 'ad-script-processing') {
+        if (!node.parameters || node.parameters.path !== 'ad-script-refactor-openrouter') {
             this.errors.push('Webhook trigger path not configured correctly');
         }
 

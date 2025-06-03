@@ -60,7 +60,7 @@ try {
         {
           parameters: {
             httpMethod: "POST",
-            path: "ad-script-processing",
+            path: "ad-script-refactor-openrouter",
             options: {}
           },
           id: "webhook-trigger",
@@ -134,7 +134,7 @@ try {
         {
           parameters: {
             httpMethod: "POST",
-            path: "ad-script-processing",
+            path: "ad-script-refactor-openrouter",
             options: {}
           },
           id: "webhook-trigger",

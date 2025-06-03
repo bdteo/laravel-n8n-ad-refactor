@@ -22,8 +22,6 @@ class Kernel extends HttpKernel
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\HandleJsonErrors::class,
-        \App\Http\Middleware\DisableRateLimitingForTests::class,
-        \App\Http\Middleware\IntegrationTestRateLimitBypass::class,
     ];
 
     /**
@@ -43,8 +41,6 @@ class Kernel extends HttpKernel
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \App\Http\Middleware\TestRateLimiting::class,
-            \App\Http\Middleware\BypassRateLimitingForTests::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\AuditLogMiddleware::class,
         ],

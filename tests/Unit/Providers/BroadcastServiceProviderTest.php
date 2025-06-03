@@ -4,8 +4,8 @@ namespace Tests\Unit\Providers;
 
 use App\Providers\BroadcastServiceProvider;
 use Illuminate\Support\Facades\Broadcast;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class BroadcastServiceProviderTest extends TestCase
 {

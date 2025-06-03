@@ -13,7 +13,7 @@ const path = require('path');
 
 // Configuration
 const config = {
-  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ad-script-processing',
+  n8nWebhookUrl: process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/ad-script-refactor-openrouter',
   webhookToken: process.env.N8N_WEBHOOK_TOKEN || 'your-webhook-token',
   laravelUrl: process.env.LARAVEL_APP_URL || 'http://localhost:8000',
   timeout: 30000, // 30 seconds

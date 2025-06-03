@@ -56,7 +56,7 @@ class NoThrottleRequestsTest extends TestCase
     public function testBypassesRateLimitingWhenHeaderIsSet(): void
     {
         $request = $this->createRequestWithRoute([
-            'X-Disable-Rate-Limiting' => 'true'
+            'X-Disable-Rate-Limiting' => 'true',
         ]);
 
         $response = $this->middleware->handle($request, function ($req) {
@@ -120,7 +120,7 @@ class NoThrottleRequestsTest extends TestCase
 
         // But explicitly request rate limiting
         $request = $this->createRequestWithRoute([
-            'X-Enable-Rate-Limiting' => 'true'
+            'X-Enable-Rate-Limiting' => 'true',
         ]);
 
         $response = $this->middleware->handle($request, function ($req) {
@@ -144,7 +144,7 @@ class NoThrottleRequestsTest extends TestCase
         $this->app['env'] = 'testing';
 
         $request = $this->createRequestWithRoute([
-            'X-Testing-Rate-Limits' => 'true'
+            'X-Testing-Rate-Limits' => 'true',
         ]);
 
         $response = $this->middleware->handle($request, function ($req) {
@@ -188,7 +188,7 @@ class NoThrottleRequestsTest extends TestCase
 
         // Make request with bypass header
         $response = $this->get('test-throttle', [
-            'X-Disable-Rate-Limiting' => 'true'
+            'X-Disable-Rate-Limiting' => 'true',
         ]);
 
         $response->assertStatus(200);

@@ -43,19 +43,8 @@ class StoreAdScriptTaskController extends Controller
             if (App::environment('testing')) {
                 $task = $this->adScriptTaskService->createAndDispatchTask($request->validated());
             } else {
-                // DEVELOPMENT MODE - for non-test environments
-                $isDevelopmentMode = true; // Always true for now during development
-
-                if ($isDevelopmentMode) {
-                    // Create task but don't dispatch it to n8n in development mode
-                    $task = $this->adScriptTaskService->createTask($request->validated());
-
-                    // Use auditLogService instead of Log facade to avoid Mockery conflicts
-                    $this->auditLogService->logTaskCreation($task);
-                } else {
-                    // Create task and dispatch it to n8n in production mode
-                    $task = $this->adScriptTaskService->createAndDispatchTask($request->validated());
-                }
+                // Create task and dispatch it to n8n in production mode
+                $task = $this->adScriptTaskService->createAndDispatchTask($request->validated());
             }
 
             $response = $this->buildSuccessResponse($task);

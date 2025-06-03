@@ -212,7 +212,7 @@ To test the error handling implementation:
 
 ### 1. Test Input Validation
 ```bash
-curl -X POST http://n8n:5678/webhook/ad-script-processing \
+curl -X POST http://n8n:5678/webhook-test/ad-script-refactor-openrouter \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-webhook-token" \
   -d '{
@@ -231,7 +231,7 @@ curl -X POST http://n8n:5678/webhook/ad-script-processing \
 
 ### 4. Test Large Script Processing
 ```bash
-curl -X POST http://n8n:5678/webhook/ad-script-processing \
+curl -X POST http://n8n:5678/webhook-test/ad-script-refactor-openrouter \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your-webhook-token" \
   -d '{

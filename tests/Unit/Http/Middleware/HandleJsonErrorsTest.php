@@ -3,11 +3,11 @@
 namespace Tests\Unit\Http\Middleware;
 
 use App\Http\Middleware\HandleJsonErrors;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use JsonException;
-use Tests\TestCase;
 use Mockery;
+use Tests\TestCase;
 
 class HandleJsonErrorsTest extends TestCase
 {
@@ -28,6 +28,7 @@ class HandleJsonErrorsTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 
@@ -47,6 +48,7 @@ class HandleJsonErrorsTest extends TestCase
             ->once()
             ->andThrow(new JsonException('Invalid JSON'));
 
+        /** @var Request $request */
         $request = Mockery::mock(Request::class);
         $request->shouldReceive('isJson')
             ->once()
@@ -60,6 +62,7 @@ class HandleJsonErrorsTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 
@@ -85,6 +88,7 @@ class HandleJsonErrorsTest extends TestCase
             ->once()
             ->andReturn(['test' => 'value']); // Return valid parsed JSON
 
+        /** @var Request $request */
         $request = Mockery::mock(Request::class);
         $request->shouldReceive('isJson')
             ->once()
@@ -98,6 +102,7 @@ class HandleJsonErrorsTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 

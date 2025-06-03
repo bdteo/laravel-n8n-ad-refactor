@@ -5,7 +5,6 @@ namespace Tests\Unit\Http\Middleware;
 use App\Http\Middleware\Authenticate;
 use Illuminate\Http\Request;
 use Tests\TestCase;
-use Mockery;
 
 class AuthenticateTest extends TestCase
 {

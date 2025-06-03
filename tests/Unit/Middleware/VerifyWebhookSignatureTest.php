@@ -324,6 +324,7 @@ class VerifyWebhookSignatureTest extends TestCase
         $nextCalled = false;
         $next = function ($request) use (&$nextCalled) {
             $nextCalled = true;
+
             return response()->json(['success' => true]);
         };
 

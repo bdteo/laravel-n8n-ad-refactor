@@ -59,7 +59,7 @@ try {
       {
         parameters: {
           httpMethod: 'POST',
-          path: 'ad-script-processing',
+          path: 'ad-script-refactor-openrouter',
           options: {},
           authentication: 'headerAuth'
         },
@@ -68,7 +68,7 @@ try {
         type: 'n8n-nodes-base.webhook',
         typeVersion: 1,
         position: [240, 300],
-        webhookId: 'ad-script-processing',
+        webhookId: 'ad-script-refactor-openrouter',
         credentials: {
           httpHeaderAuth: {
             id: 'webhook-auth',

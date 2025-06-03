@@ -9,7 +9,7 @@ The workflow processes ad script refactoring requests from Laravel using AI (GPT
 ## Workflow Components
 
 ### 1. Webhook Trigger
-- **Path**: `/webhook/ad-script-processing`
+- **Path**: `/webhook-test/ad-script-refactor-openrouter`
 - **Method**: POST
 - **Authentication**: Header-based authentication using `X-Webhook-Secret`
 - **Expected Payload**:
@@ -130,7 +130,7 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 1. **Create a POST request** to:
    ```
-   http://localhost:5678/webhook/ad-script-processing
+   http://localhost:5678/webhook-test/ad-script-refactor-openrouter
    ```
 
 2. **Add Headers**:
@@ -285,7 +285,7 @@ graph TD
    curl -v http://app:8000/api/health
    
    # From Laravel container to n8n
-   curl -v http://n8n:5678/webhook/ad-script-processing
+   curl -v http://n8n:5678/webhook-test/ad-script-refactor-openrouter
    ```
 
 4. **Run error handling tests**:

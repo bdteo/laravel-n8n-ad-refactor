@@ -3,7 +3,6 @@
 namespace Tests\Unit\Http\Middleware;
 
 use App\Http\Middleware\TrustHosts;
-use Illuminate\Contracts\Foundation\Application;
 use Tests\TestCase;
 
 class TrustHostsTest extends TestCase
@@ -24,7 +23,7 @@ class TrustHostsTest extends TestCase
         // which should be a string pattern or null depending on the app URL
         $pattern = $result[0];
         $this->assertTrue(
-            is_string($pattern) || is_null($pattern),
+            is_string($pattern) || $pattern === null,
             'Host pattern should be a string or null'
         );
     }

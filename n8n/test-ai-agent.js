@@ -167,7 +167,7 @@ async function testWebhook(testCase, webhookUrl, authSecret) {
  * Run all test cases
  */
 async function runTests() {
-  const webhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/ad-script-processing';
+  const webhookUrl = process.env.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook-test/ad-script-refactor-openrouter';
   const authSecret = process.env.N8N_WEBHOOK_SECRET || 'your-webhook-secret';
   
   console.log('🧪 Testing AI Agent Configuration in n8n Workflow');

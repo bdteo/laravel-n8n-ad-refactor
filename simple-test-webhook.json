@@ -1,25 +1,24 @@
 {
-  "name": "Test Webhook Workflow",
-  "active": true,
+  "name": "Simple Test Webhook",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "test-webhook",
+        "path": "ad-script-refactor-openrouter",
         "options": {}
       },
-      "id": "test-webhook",
+      "id": "webhook-trigger",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 2,
       "position": [240, 300]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ { \"success\": true, \"message\": \"Webhook received\", \"data\": $json } }"
+        "responseBody": "{ \"status\": \"success\", \"message\": \"Webhook working!\" }"
       },
-      "id": "respond",
+      "id": "webhook-response",
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
@@ -27,16 +26,14 @@
     }
   ],
   "connections": {
-    "test-webhook": {
-      "main": [
-        [
-          {
-            "node": "respond",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "webhook-trigger": {
+      "main": [[{
+        "node": "webhook-response",
+        "type": "main",
+        "index": 0
+      }]]
     }
-  }
-}
+  },
+  "active": true,
+  "id": "simple-test-webhook"
+} 

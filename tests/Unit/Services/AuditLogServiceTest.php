@@ -121,9 +121,9 @@ class AuditLogServiceTest extends TestCase
             'complex' => [
                 'nested' => [
                     'object' => new \stdClass(),
-                    'array' => [1, 2, 3]
-                ]
-            ]
+                    'array' => [1, 2, 3],
+                ],
+            ],
         ];
 
         // Act - this shouldn't throw an exception
@@ -152,9 +152,9 @@ class AuditLogServiceTest extends TestCase
             'complex' => [
                 'nested' => [
                     'object' => new \stdClass(),
-                    'array' => [1, 2, 3]
-                ]
-            ]
+                    'array' => [1, 2, 3],
+                ],
+            ],
         ];
 
         // Act - this shouldn't throw an exception

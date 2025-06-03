@@ -10,7 +10,7 @@ echo "======================================"
 
 # Configuration
 N8N_URL="http://localhost:5678"
-WEBHOOK_PATH="/webhook/ad-script-processing"
+WEBHOOK_PATH="/webhook-test/ad-script-refactor-openrouter"
 WEBHOOK_SECRET="your-webhook-secret-here"
 
 # Colors for output

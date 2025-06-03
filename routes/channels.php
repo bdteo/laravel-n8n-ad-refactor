@@ -1,4 +1,5 @@
 <?php
+
 // This is a dummy channels.php file for testing purposes
 // It allows the BroadcastServiceProvider to require this file without errors
 

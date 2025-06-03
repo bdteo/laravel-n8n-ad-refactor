@@ -1,37 +1,281 @@
 {
-  "name": "Ad Script Refactor Workflow",
-  "active": true,
+  "name": "Ad Script Refactor Workflow v3 (OpenRouter)",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "ad-script-processing",
+        "path": "ad-script-refactor-openrouter",
+        "responseMode": "responseNode",
         "options": {}
       },
-      "id": "webhook-trigger",
-      "name": "Webhook",
+      "id": "268f0756-5598-46ce-af78-8028a061f688",
+      "name": "Webhook Trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        240,
-        300
+        -1980,
+        -360
+      ],
+      "webhookId": "a7dc7f88-f222-456f-8677-1f4163190c7f"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"status\":\"processing\", \"message\":\"Request received\", \"task_id\": $json.body.task_id} }}",
+        "options": {}
+      },
+      "id": "54e1a7bf-e499-43f2-a81c-be704fdfe31c",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -1540,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.body.task_id }}"
+            },
+            {
+              "name": "referenceScript",
+              "value": "={{ $json.body.reference_script }}"
+            },
+            {
+              "name": "outcomeDescription",
+              "value": "={{ $json.body.outcome_description }}"
+            },
+            {
+              "name": "laravelCallbackUrlBase",
+              "value": "={{ 'http://host.docker.internal:8000' }}"
+            }
+          ],
+          "number": [],
+          "boolean": [],
+          "json": []
+        },
+        "options": {}
+      },
+      "id": "e869f608-ea54-443e-9d9e-fe32f2d93d76",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        -1300,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{error:'Input validation failed – task_id, reference_script, and/or outcome_description missing'}}];"
+      },
+      "id": "8bf14f28-ed5f-4e33-9b3c-afa7bc44f4eb",
+      "name": "Format Validation Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -1560,
+        -480
+      ]
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-3.7-sonnet",
+        "prompt": "={{\n    \"You are an expert advertising copy specialist. Your task is to refactor the provided advertising script according to the given outcome description.\\n\\n\" +\n    \"IMPORTANT: You must respond with ONLY a valid JSON object in this exact format:\\n\" +\n    \"{\\n\" +\n    \"  \\\"new_script\\\": \\\"your refactored advertising script here\\\",\\n\" +\n    \"  \\\"analysis\\\": {\\n\" +\n    \"    \\\"improvements_made\\\": \\\"description of what you improved\\\",\\n\" +\n    \"    \\\"tone_analysis\\\": \\\"analysis of the tone and style\\\",\\n\" +\n    \"    \\\"target_audience_fit\\\": \\\"how well it fits the target audience\\\",\\n\" +\n    \"    \\\"length_compliance\\\": \\\"whether length requirements were met\\\",\\n\" +\n    \"    \\\"persuasiveness_enhancements\\\": \\\"how persuasiveness was improved\\\",\\n\" +\n    \"    \\\"potential_issues\\\": \\\"any potential concerns or limitations\\\",\\n\" +\n    \"    \\\"recommendations\\\": \\\"additional suggestions for improvement\\\"\\n\" +\n    \"  }\\n\" +\n    \"}\\n\\n\" +\n    \"Requirements: \" + $json.outcomeDescription + \"\\n\\n\" +\n    \"Original Script to Refactor:\\n\" +\n    '```' +\n     \"\\n\" +\n    $json.referenceScript +\n    \"\\n\" +\n    '```' + \"\\n\\n\" +\n    \"Remember: Respond ONLY with the JSON object, no additional text or markdown formatting.\"\n}}",
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "89324511-2020-4912-ad3e-557b32576ea3",
+      "name": "AI Agent (OpenRouter)",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        -1020,
+        -140
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "hkM8hDFzBGXw5PUx",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ !$json.error }}",
+              "value2": "={{ true }}"
+            },
+            {
+              "value1": "={{ !!$json.text }}",
+              "value2": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "id": "f9bae3a9-fc9e-4a07-989c-59dbc0eae0a9",
+      "name": "AI response ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $('AI Agent (OpenRouter)').first().json.text;\nlet parsed = {};\ntry {parsed = JSON.parse(raw);} catch (e) {}\n\nif (typeof parsed.new_script !==\n  'string' ||\n  typeof parsed.analysis !==\n  'object') {\n  return [{\n    json: {\n      task_id: $('Set Variables').first().json.body.task_id,\n      error: 'AI returned invalid JSON',\n      raw: raw.slice(0, 500)\n    }\n  }];\n}\nreturn [{\n  json: {\n    task_id: $('Set Variables').first().json.body.task_id,\n    new_script: parsed.new_script,\n    analysis: parsed.analysis\n  }\n}];\n"
+      },
+      "id": "623c3ea1-71b4-4e9c-b43c-5e2a2540224a",
+      "name": "Process AI JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{task_id:$json.taskId,error:$json?.error?.message}}];"
+      },
+      "id": "d8b3f56e-bac5-4ee0-9c83-1c1a692ceb48",
+      "name": "Format AI Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $('Set Variables').item.json.laravelCallbackUrlBase }}/api/ad-scripts/{{ $('Set Variables').item.json.taskId }}/result",
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "error",
+              "value": "={{ $json.error }}"
+            },
+            {
+              "name": "raw",
+              "value": "={{ $json.raw }}"
+            },
+            {
+              "name": "new_script",
+              "value": "={{ $json?.new_script }}"
+            },
+            {
+              "name": "analysis",
+              "value": "={{ $json?.analysis }}"
+            }
+          ]
+        }
+      },
+      "id": "33b4fb57-7d38-404f-808a-daa71c4a9286",
+      "name": "Callback to Laravel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5d8f34c7-fb92-40d1-a748-2c4c7aafdadc",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.task_id }}",
+              "operation": "isEmpty"
+            },
+            {
+              "value1": "={{ $json.body.reference_script }}",
+              "operation": "isEmpty"
+            },
+            {
+              "value1": "={{ $json.body.outcome_description }}",
+              "operation": "isEmpty"
+            }
+          ]
+        },
+        "combineOperation": "any"
+      },
+      "id": "395cf334-d81b-49a8-ac10-a045bcb059df",
+      "name": "Input missing?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1780,
+        -340
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={ { \"status\": \"processing\", \"message\": \"Processing started\", \"task_id\": $json.task_id } }"
+        "responseBody": "=  {{ JSON.stringify($json) }}",
+        "options": {}
       },
-      "id": "webhook-response",
-      "name": "Respond to Webhook",
+      "id": "0e2ae274-6643-49f8-89e5-30d9e02e6f78",
+      "name": "Respond to Webhook1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        460,
-        300
+        -1240,
+        -340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{json:{task_id:'unknown',error:`Unknown Global error!`}}];"
+      },
+      "id": "c970dba1-cdc7-4537-8804-cd9a3f76cdb5",
+      "name": "Format Global Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        -1340,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "=  {{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "61f05824-0338-4ec5-bc46-a2c5b3e74c96",
+      "name": "Respond to Webhook2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        60
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "webhook-trigger": {
       "main": [
@@ -40,9 +284,291 @@
             "node": "webhook-response",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "set-vars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "webhook-response": {
+      "main": [
+        []
+      ]
+    },
+    "set-vars": {
+      "main": [
+        [
+          {
+            "node": "if-input-ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-input-ok": {
+      "main": [
+        [
+          {
+            "node": "format-validation-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ai-agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ai-agent": {
+      "main": [
+        [
+          {
+            "node": "if-ai-ok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-ai-ok": {
+      "main": [
+        [
+          {
+            "node": "format-ai-error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "process-ai",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process-ai": {
+      "main": [
+        [
+          {
+            "node": "merge-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-ai-error": {
+      "main": [
+        [
+          {
+            "node": "merge-results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "format-validation-error": {
+      "main": [
+        [
+          {
+            "node": "merge-results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "merge-results": {
+      "main": [
+        [
+          {
+            "node": "callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "global-error": {
+      "main": [
+        [
+          {
+            "node": "format-global-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "format-global-error": {
+      "main": [
+        [
+          {
+            "node": "merge-results",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (OpenRouter)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Validation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Input missing?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input missing?": {
+      "main": [
+        [
+          {
+            "node": "Format Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (OpenRouter)": {
+      "main": [
+        [
+          {
+            "node": "AI response ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI response ok?": {
+      "main": [
+        [
+          {
+            "node": "Process AI JSON",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format AI Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Global Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Global Error": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI JSON": {
+      "main": [
+        [
+          {
+            "node": "Callback to Laravel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AI Error": {
+      "main": [
+        [
+          {
+            "node": "Callback to Laravel",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
     }
-  }
+  },
+  "active": true,
+  "settings": {
+    "errorWorkflow": "global-error",
+    "timezone": "UTC",
+    "saveManualExecutions": true
+  },
+  "versionId": "1271333a-7b62-4665-91e8-4ed5c4ad441f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7ad6b24784ad28709d0d5d05e9bf67b6d332d2b79ee81440f000f327141c4863"
+  },
+  "id": "ad-script-refactor-openrouter",
+  "tags": []
 }

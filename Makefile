@@ -98,7 +98,7 @@ test-coverage: test-setup ## Run tests with coverage
 	docker compose exec -T app bash -c "php artisan config:clear && DB_CONNECTION=sqlite DB_DATABASE=:memory: XDEBUG_MODE=coverage ./vendor/bin/pest --colors=always --coverage --coverage-html coverage"
 	@echo "✅ HTML coverage report generated in the coverage/ directory"
 	@echo "📊 Open coverage/index.html in your browser to view the detailed report"
-	
+
 # Code quality
 cs-fix: ## Fix PHP coding standards issues automatically
 	docker compose exec -T app bash -c "PHP_CS_FIXER_IGNORE_ENV=1 ./vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php --verbose --ansi"
@@ -117,7 +117,7 @@ stan-clear: ## Clear PHPStan cache
 	@echo "✅ PHPStan cache has been cleared"
 
 code-quality: cs-fix stan ## Run all code quality checks
-	
+
 # Development setup options
 dev-setup: reliable-dev-setup ## Complete development setup using the reliable approach
 
@@ -210,7 +210,7 @@ verify-integration: ## Ensure Laravel and n8n can communicate with each other
 	docker compose exec n8n sh -c 'echo "[{\"id\":\"webhook-auth\",\"name\":\"Laravel Webhook Auth\",\"data\":{\"never_expires\":true,\"value\":\"a-very-strong-static-secret-laravel-sends-to-n8n\",\"name\":\"X-Laravel-Trigger-Auth\"},\"type\":\"httpHeaderAuth\"},{\"id\":\"openai-credentials\",\"name\":\"OpenAI API\",\"data\":{\"apiKey\":\"sk-mock-key-for-testing-not-real\",\"baseUrl\":\"https://api.openai.com/v1\"},\"type\":\"openAiApi\"}]" > /home/node/.n8n/credentials.json'
 
 	@echo "Verifying the webhook endpoint is working..."
-	docker compose exec app curl -s -X OPTIONS http://n8n:5678/webhook/ad-script-processing
+	docker compose exec app curl -s -X OPTIONS http://n8n:5678/webhook-test/ad-script-refactor-openrouter
 	@echo "\n✅ Integration verification complete. Laravel and n8n are properly configured to communicate!"
 
 # n8n setup
@@ -233,7 +233,7 @@ n8n-setup: ## Ensure n8n workflow is active
 	docker compose exec n8n sh -c 'mkdir -p /home/node/.n8n && echo "N8N_RUNNERS_ENABLED=true" > /home/node/.n8n/.env'
 
 	@echo "Updating Laravel environment to use host.docker.internal..."
-	docker compose exec app sed -i 's|^N8N_TRIGGER_WEBHOOK_URL=.*|N8N_TRIGGER_WEBHOOK_URL=http://host.docker.internal:5678/webhook/ad-script-processing|' /var/www/.env
+	docker compose exec app sed -i 's|^N8N_TRIGGER_WEBHOOK_URL=.*|N8N_TRIGGER_WEBHOOK_URL=http://host.docker.internal:5678/webhook-test/ad-script-refactor-openrouter|' /var/www/.env
 	@echo "Disabling webhook authentication for development..."
 	docker compose exec app sed -i 's/^N8N_AUTH_HEADER_VALUE=.*/N8N_AUTH_HEADER_VALUE=/' /var/www/.env
 	@echo "Setting N8N_DISABLE_AUTH=true to bypass signature verification in tests..."
@@ -261,7 +261,7 @@ n8n-reset: ## Complete reset of n8n and Laravel environments
 	docker compose exec app sed -i 's/^N8N_AUTH_HEADER_VALUE=.*/N8N_AUTH_HEADER_VALUE=/' /var/www/.env
 
 	@echo "Creating simplified n8n workflow..."
-	docker compose cp n8n/workflows/simple-workflow.json n8n:/home/node/.n8n/workflows/ad-script-workflow.json
+	docker compose cp n8n/workflows/ad-script-refactor-workflow.json n8n:/home/node/.n8n/workflows/ad-script-workflow.json
 	docker compose cp make-tools/simple-workflow-setup.js n8n:/home/node/simple-workflow-setup.js
 	docker compose exec n8n node /home/node/simple-workflow-setup.js
 

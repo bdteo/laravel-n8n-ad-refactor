@@ -21,10 +21,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->get('/user', function (Requ
 });
 
 Route::post('/ad-scripts', StoreAdScriptTaskController::class)
-    ->middleware(['throttle:ad-script-submission', 'throttle:ad-script-submission-hourly']);
+    ->middleware(['throttle:ad-script-submission']);
 
 Route::post('/ad-scripts/{task}/result', ProcessAdScriptResultController::class)
-    ->middleware(['webhook.signature', 'throttle:result-processing', 'throttle:result-processing-hourly']);
+    ->middleware(['webhook.signature', 'throttle:result-processing']);
 
 // Simple health check endpoint for our development setup script
 Route::get('/health-check', function () {

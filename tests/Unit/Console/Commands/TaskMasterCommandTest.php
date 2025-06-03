@@ -192,9 +192,9 @@ class TaskMasterCommandTest extends TestCase
                     [
                         'title' => 'Subtask 1',
                         'status' => 'pending',
-                    ]
+                    ],
                 ],
-            ]
+            ],
         ];
 
         File::put($this->tasksJsonPath, json_encode(['tasks' => $tasks], JSON_PRETTY_PRINT));
@@ -229,7 +229,7 @@ class TaskMasterCommandTest extends TestCase
                 'priority' => 'medium',
                 'dependencies' => [],
                 'subtasks' => [],
-            ]
+            ],
         ];
 
         File::put($this->tasksJsonPath, json_encode(['tasks' => $tasks], JSON_PRETTY_PRINT));
@@ -270,7 +270,7 @@ class TaskMasterCommandTest extends TestCase
                 'status' => 'pending',
                 'priority' => 'medium',
                 'dependencies' => [],
-            ]
+            ],
         ];
 
         File::put($this->tasksJsonPath, json_encode(['tasks' => $tasks], JSON_PRETTY_PRINT));
@@ -321,7 +321,7 @@ class TaskMasterCommandTest extends TestCase
                 'priority' => 'medium',
                 'dependencies' => [],
                 'subtasks' => [],
-            ]
+            ],
         ];
 
         File::put($this->tasksJsonPath, json_encode(['tasks' => $tasks], JSON_PRETTY_PRINT));
@@ -356,6 +356,7 @@ class TaskMasterCommandTest extends TestCase
         foreach ($content['tasks'] as $task) {
             if ($task['id'] === 2) {
                 $dependentTask = $task;
+
                 break;
             }
         }
@@ -384,7 +385,7 @@ class TaskMasterCommandTest extends TestCase
         $content .= "# Title: {$task['title']}\n";
         $content .= "# Status: {$task['status']}\n";
 
-        if (!empty($task['dependencies'])) {
+        if (! empty($task['dependencies'])) {
             $content .= "# Dependencies: " . implode(', ', $task['dependencies']) . "\n";
         } else {
             $content .= "# Dependencies: None\n";
@@ -393,11 +394,11 @@ class TaskMasterCommandTest extends TestCase
         $content .= "# Priority: {$task['priority']}\n";
         $content .= "# Description: {$task['description']}\n";
 
-        if (!empty($task['details'])) {
+        if (! empty($task['details'])) {
             $content .= "# Details:\n{$task['details']}\n";
         }
 
-        if (!empty($task['testStrategy'])) {
+        if (! empty($task['testStrategy'])) {
             $content .= "\n# Test Strategy:\n{$task['testStrategy']}\n";
         }
 

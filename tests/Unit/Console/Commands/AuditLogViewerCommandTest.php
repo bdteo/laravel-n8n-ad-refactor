@@ -3,7 +3,6 @@
 namespace Tests\Unit\Console\Commands;
 
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuditLogViewerCommandTest extends TestCase
@@ -76,7 +75,7 @@ class AuditLogViewerCommandTest extends TestCase
         // Should only show task.created events
         $this->artisan('audit:logs', [
             '--date' => $this->testDate,
-            '--event' => 'task.created'
+            '--event' => 'task.created',
         ])
             ->expectsTable(
                 ['Timestamp', 'Event', 'Details'],
@@ -100,7 +99,7 @@ class AuditLogViewerCommandTest extends TestCase
         // Should only show logs for task 123
         $this->artisan('audit:logs', [
             '--date' => $this->testDate,
-            '--task' => '123'
+            '--task' => '123',
         ])
             ->expectsTable(
                 ['Timestamp', 'Event', 'Details'],
@@ -125,7 +124,7 @@ class AuditLogViewerCommandTest extends TestCase
         // Should only show 1 result
         $this->artisan('audit:logs', [
             '--date' => $this->testDate,
-            '--limit' => '1'
+            '--limit' => '1',
         ])
             ->expectsTable(
                 ['Timestamp', 'Event', 'Details'],
@@ -146,7 +145,7 @@ class AuditLogViewerCommandTest extends TestCase
 
         $this->artisan('audit:logs', [
             '--date' => $this->testDate,
-            '--json' => true
+            '--json' => true,
         ])
             ->assertExitCode(0);
 

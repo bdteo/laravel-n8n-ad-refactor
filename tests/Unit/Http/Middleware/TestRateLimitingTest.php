@@ -4,11 +4,10 @@ namespace Tests\Unit\Http\Middleware;
 
 use App\Http\Middleware\TestRateLimiting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\App;
-use Tests\TestCase;
-use Closure;
+use Illuminate\Support\Facades\RateLimiter;
 use Mockery;
+use Tests\TestCase;
 
 class TestRateLimitingTest extends TestCase
 {

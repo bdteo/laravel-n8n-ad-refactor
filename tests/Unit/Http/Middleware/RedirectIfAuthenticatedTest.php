@@ -4,7 +4,6 @@ namespace Tests\Unit\Http\Middleware;
 
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Providers\RouteServiceProvider;
-use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Tests\TestCase;
@@ -20,6 +19,7 @@ class RedirectIfAuthenticatedTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 
@@ -50,6 +50,7 @@ class RedirectIfAuthenticatedTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 
@@ -81,6 +82,7 @@ class RedirectIfAuthenticatedTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 
@@ -120,6 +122,7 @@ class RedirectIfAuthenticatedTest extends TestCase
         $called = false;
         $next = function ($req) use (&$called) {
             $called = true;
+
             return response('next middleware called');
         };
 

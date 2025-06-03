@@ -40,7 +40,6 @@ class CustomThrottleRequests extends ThrottleRequests
         if (! $response->headers->has('X-RateLimit-Limit')) {
             $limiter = $this->limiter;
             $key = $this->resolveRequestSignature($request);
-
             // Ensure maxAttempts is an integer before using it
             $maxAttemptsInt = (int)$maxAttempts;
             $response->headers->set('X-RateLimit-Limit', (string)$maxAttemptsInt);

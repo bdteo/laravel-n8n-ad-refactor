@@ -23,7 +23,7 @@ sequenceDiagram
 
     LaravelQueue->>+N8nTriggerJob: Process Job
     N8nTriggerJob->>N8nTriggerJob: Update Task Status (PROCESSING)
-    N8nTriggerJob->>+N8nWorkflow: POST /webhook/ad-script-processing (task_id, script, outcome, AUTH)
+    N8nTriggerJob->>+N8nWorkflow: POST /webhook-test/ad-script-refactor-openrouter (task_id, script, outcome, AUTH)
     N8nWorkflow-->>-N8nTriggerJob: HTTP 200 OK (Webhook received)
 
     N8nWorkflow->>+OpenAI: Analyze & Generate Script

@@ -295,7 +295,7 @@ Verify end-to-end functionality:
 
 ```bash
 # Test webhook endpoint
-curl -X POST http://localhost:5678/webhook/ad-script-processing \
+curl -X POST http://localhost:5678/webhook-test/ad-script-refactor-openrouter \
   -H "Content-Type: application/json" \
   -H "X-Webhook-Secret: your-webhook-secret" \
   -d '{

@@ -2,8 +2,8 @@
   "info": {
     "_postman_id": "0687BF25-42FE-48B3-85B7-04C8C2A1F425",
     "name": "Laravel n8n Ad Script Refactor API",
-    "description": "Postman collection for the Ad Script Refactor API. Demonstrates creating tasks for refactoring advertising copy (e.g., marketing slogans, ad text) and simulating n8n callbacks.\n\n**Environment Variables Needed:**\n- `base_url`: Root URL for the API (e.g., http:\/\/localhost:8000\/api)\n- `n8n_callback_hmac_secret`: Shared secret for HMAC signature verification of n8n callbacks.\n\n**Dynamic Variables (set by test scripts):**\n- `created_task_id`: Populated by the 'Create Ad Script Task (Success)' request. Used for the success callback.\n- `error_test_task_id`: Populated by the pre-request script of 'n8n Callback - Failure'. Used for the failure callback.\n- `hmac_signature`: Populated by pre-request scripts for callback requests.",
-    "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json"
+    "description": "Postman collection for the Ad Script Refactor API. Demonstrates creating tasks for refactoring advertising copy (e.g., marketing slogans, ad text) and simulating n8n callbacks.\n\n**Environment Variables Needed:**\n- `base_url`: Root URL for the API (e.g., http://localhost:8000/api)\n- `n8n_callback_hmac_secret`: Shared secret for HMAC signature verification of n8n callbacks.\n\n**Dynamic Variables (set by test scripts):**\n- `created_task_id`: Populated by the 'Create Ad Script Task (Success)' request. Used for the success callback.\n- `error_test_task_id`: Populated by the pre-request script of 'n8n Callback - Failure'. Used for the failure callback.\n- `hmac_signature`: Populated by pre-request scripts for callback requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
@@ -41,7 +41,7 @@
                   "    }",
                   "});"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -50,11 +50,15 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
@@ -67,7 +71,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts",
+              "raw": "{{base_url}}/ad-scripts",
               "host": [
                 "{{base_url}}"
               ],
@@ -98,7 +102,7 @@
                   "    pm.expect(jsonData.errors).to.have.property('outcome_description');",
                   "});"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -107,11 +111,15 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
@@ -124,7 +132,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts",
+              "raw": "{{base_url}}/ad-scripts",
               "host": [
                 "{{base_url}}"
               ],
@@ -155,7 +163,7 @@
                   "    pm.expect(jsonData.errors.outcome_description[0]).to.include('must be at least 5 characters');",
                   "});"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -164,11 +172,15 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
@@ -181,7 +193,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts",
+              "raw": "{{base_url}}/ad-scripts",
               "host": [
                 "{{base_url}}"
               ],
@@ -233,7 +245,7 @@
                   "    pm.environment.set(\"hmac_signature\", \"invalid_due_to_generation_error\");",
                   "}"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             },
             {
@@ -254,7 +266,7 @@
                   "    pm.expect(jsonData.data.analysis).to.be.an('object');",
                   "});"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -263,20 +275,24 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "X-N8N-Signature",
                 "value": "{{hmac_signature}}"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"new_script\": \"☀️ Epic Summer Vibes ONLY! 🤘 Cop the freshest deals before they melt away! 🔥 #SummerSteals #LimitedDrop\",\n    \"analysis\": {\n        \"improvements_made\": [\n            \"Used emojis to add visual appeal and convey excitement.\",\n            \"Adopted a more informal and trendy tone suitable for a younger audience.\",\n            \"Incorporated slang like 'cop' and 'freshest deals'.\",\n            \"Emphasized limited availability with 'before they melt away' and '#LimitedDrop'.\",\n            \"Added relevant hashtags for social media discoverability.\"\n        ],\n        \"tone_analysis\": \"Playful, urgent, trendy.\",\n        \"target_audience_fit\": \"High for young adults (18-25).\",\n        \"length_compliance\": \"Met, under 140 characters.\",\n        \"persuasiveness_enhancements\": [\n            \"Urgency creation.\",\n            \"Use of current slang and emojis.\"\n        ],\n        \"potential_issues\": [\"Slang might become dated quickly.\"],\n        \"recommendations\": [\"A/B test with different emojis.\", \"Consider adding a specific discount percentage if applicable.\"]\n    }\n}",
+              "raw": "{\n    \"new_script\": \"☀️ Epic Summer Vibes ONLY! 🤘 Cop the freshest deals before they melt away! 🔥 #SummerSteals #LimitedDrop\",\n    \"analysis\": {\n        \"improvements_made\": \"Used emojis to add visual appeal, adopted trendy language for younger audience, emphasized urgency with limited-time messaging\",\n        \"tone_analysis\": \"Playful, urgent, trendy - perfect for 18-25 demographic\",\n        \"target_audience_fit\": \"High compatibility with young adults through slang and emoji usage\",\n        \"length_compliance\": \"Successfully kept under 140 characters for social media\",\n        \"persuasiveness_enhancements\": \"Created urgency with 'before they melt away' and hashtag strategy\",\n        \"potential_issues\": \"Slang might become dated quickly, emoji display varies across platforms\",\n        \"recommendations\": \"A/B test with different emoji combinations, consider specific discount percentages\"\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -284,7 +300,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts\/{{created_task_id}}\/result",
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
               "host": [
                 "{{base_url}}"
               ],
@@ -311,7 +327,8 @@
                   "    method: 'POST',",
                   "    header: {",
                   "        'Content-Type': 'application/json',",
-                  "        'Accept': 'application/json'",
+                  "        'Accept': 'application/json',",
+                  "        'X-Disable-Rate-Limiting': 'true',",
                   "    },",
                   "    body: {",
                   "        mode: 'raw',",
@@ -356,7 +373,7 @@
                   "// Added placeholderSecrets definition here too for the pre-request script context",
                   "const placeholderSecrets = [\"{{N8N_CALLBACK_HMAC_SECRET_CI}}\", \"{{N8N_CALLBACK_HMAC_SECRET}}\", \"your-local-hmac-secret\", \"your-n8n-callback-hmac-secret-here\"];"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             },
             {
@@ -375,7 +392,7 @@
                   "    pm.expect(jsonData.data.error_details).to.be.a('string');",
                   "});"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -384,15 +401,19 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "X-N8N-Signature",
                 "value": "{{hmac_signature}}"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
@@ -405,7 +426,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts\/{{error_test_task_id}}\/result",
+              "raw": "{{base_url}}/ad-scripts/{{error_test_task_id}}/result",
               "host": [
                 "{{base_url}}"
               ],
@@ -447,7 +468,7 @@
                   "}",
                   "console.log('Note: Behavior of this test depends on N8N_DISABLE_AUTH in Laravel .env. Create an env var N8N_DISABLE_AUTH_IS_TRUE (string true/false) in Postman for accurate testing.');"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -456,20 +477,24 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "X-N8N-Signature",
                 "value": "sha256=invalid-signature-on-purpose"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"new_script\": \"This won't be processed.\",\n    \"analysis\": {}\n}",
+              "raw": "{\n    \"new_script\": \"This script should process since auth is disabled\",\n    \"analysis\": {\n        \"note\": \"This payload is valid but signature is invalid - testing auth bypass\"\n    }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -477,7 +502,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts\/{{created_task_id}}\/result",
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
               "host": [
                 "{{base_url}}"
               ],
@@ -525,7 +550,7 @@
                   "    pm.environment.set(\"hmac_signature\", \"invalid_due_to_generation_error\");",
                   "}"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             },
             {
@@ -541,7 +566,7 @@
                   "    pm.expect(jsonData.errors.payload[0]).to.include('Either new_script or error must be provided');",
                   "});"
                 ],
-                "type": "text\/javascript"
+                "type": "text/javascript"
               }
             }
           ],
@@ -550,15 +575,19 @@
             "header": [
               {
                 "key": "Content-Type",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "Accept",
-                "value": "application\/json"
+                "value": "application/json"
               },
               {
                 "key": "X-N8N-Signature",
                 "value": "{{hmac_signature}}"
+              },
+              {
+                "key": "X-Disable-Rate-Limiting",
+                "value": "true"
               }
             ],
             "body": {
@@ -571,7 +600,7 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}\/ad-scripts\/{{created_task_id}}\/result",
+              "raw": "{{base_url}}/ad-scripts/{{created_task_id}}/result",
               "host": [
                 "{{base_url}}"
               ],
@@ -592,7 +621,7 @@
     {
       "listen": "prerequest",
       "script": {
-        "type": "text\/javascript",
+        "type": "text/javascript",
         "exec": [
           ""
         ]
@@ -601,7 +630,7 @@
     {
       "listen": "test",
       "script": {
-        "type": "text\/javascript",
+        "type": "text/javascript",
         "exec": [
           ""
         ]
@@ -611,7 +640,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "http:\/\/localhost:8000\/api",
+      "value": "http://localhost:8000/api",
       "type": "string",
       "description": "The base URL for your Laravel API. Change if your app runs on a different port or domain."
     },

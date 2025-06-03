@@ -48,7 +48,7 @@ echo "🔧 Configuring environment for API tests..."
 
 # Ensure proper Laravel environment variables for n8n integration
 echo "⚙️ Setting up Laravel-n8n integration environment variables..."
-docker compose exec -T app bash -c 'sed -i "s|^N8N_TRIGGER_WEBHOOK_URL=.*|N8N_TRIGGER_WEBHOOK_URL=http://host.docker.internal:5678/webhook/ad-script-processing|" /var/www/.env'
+docker compose exec -T app bash -c 'sed -i "s|^N8N_TRIGGER_WEBHOOK_URL=.*|N8N_TRIGGER_WEBHOOK_URL=http://host.docker.internal:5678/webhook-test/ad-script-refactor-openrouter|" /var/www/.env'
 docker compose exec -T app bash -c 'sed -i "s/^N8N_AUTH_HEADER_VALUE=.*/N8N_AUTH_HEADER_VALUE=/" /var/www/.env'
 docker compose exec -T app bash -c 'sed -i "s/^N8N_DISABLE_AUTH=.*/N8N_DISABLE_AUTH=true/" /var/www/.env || echo "N8N_DISABLE_AUTH=true" >> /var/www/.env'
 docker compose exec -T app bash -c 'sed -i "s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/" /var/www/.env'
